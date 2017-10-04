@@ -1,7 +1,7 @@
 # MT668
 Fall 2017 Machine Translation
 
-Homeword 2
+Homework 2(Word Alignment): We implemented IBM Model 1 and IBM Model 2.
 
 How to run IBM Model 1:
 
