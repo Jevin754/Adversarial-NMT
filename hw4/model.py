@@ -8,12 +8,12 @@ class RNNLM(nn.Module):
   def __init__(self, vocab_size):
     super(RNNLM, self).__init__()
     # word embedding lookup table
-    self.lookup = torch.randn(vocab_size, 32)
+    self.lookup = nn.Parameter(torch.randn(vocab_size, 32), requires_grad = True)
     self.weight_x = nn.Parameter(torch.Tensor(32,16), requires_grad = True)
     self.weight_h = nn.Parameter(torch.Tensor(16,16), requires_grad = True)
     self.weight_o = nn.Parameter(torch.Tensor(16,vocab_size), requires_grad = True)
   def forward(self, input_batch):
-    X = self.lookup[input_batch.data,:]
+    X = self.lookup[input_batch.data,:].data
     sequence_length = input_batch.size()[0]
     batch_length = input_batch.size()[1]
     output = Variable(torch.zeros(sequence_length, batch_length, self.lookup.size()[0]), requires_grad = False)
@@ -34,15 +34,6 @@ class RNNLM(nn.Module):
 
     return output
 
-
-
-    
-
-
-
-
-
-    
 
 
 # TODO: Your implementation goes here
