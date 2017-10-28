@@ -7,6 +7,7 @@ import numpy as np
 class RNNLM(nn.Module):
   def __init__(self, vocab_size):
     super(RNNLM, self).__init__()
+    # word embedding lookup table
     self.lookup = torch.randn(vocab_size, 32)
     self.weight_x = nn.Parameter(torch.Tensor(32,16), requires_grad = True)
     self.weight_h = nn.Parameter(torch.Tensor(16,16), requires_grad = True)
