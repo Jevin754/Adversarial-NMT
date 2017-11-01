@@ -10,24 +10,26 @@ class RNNLM(nn.Module):
     super(RNNLM, self).__init__()
     # word embedding lookup table
     self.vocab_size = vocab_size
-    self.lookup   = nn.Parameter(torch.Tensor(vocab_size, 32).uniform_())
-    self.weight_x = nn.Parameter(torch.Tensor(32, 16).uniform_(-1.0/math.sqrt(32), 1.0/math.sqrt(32)))
-    self.weight_h = nn.Parameter(torch.Tensor(16, 16).uniform_(-1.0/math.sqrt(16), 1.0/math.sqrt(16)))
-    self.weight_o = nn.Parameter(torch.Tensor(16, vocab_size).uniform_(-1.0/math.sqrt(16), 1.0/math.sqrt(16)))
+    self.embed_size = 32
+    self.hidden_size = 16
+    self.lookup   = nn.Parameter(torch.Tensor(vocab_size, self.embed_size).uniform_())
+    self.weight_x = nn.Parameter(torch.Tensor(self.embed_size, self.hidden_size).uniform_(-1.0/math.sqrt(self.embed_size), 1.0/math.sqrt(self.embed_size)))
+    self.weight_h = nn.Parameter(torch.Tensor(self.hidden_size, self.hidden_size).uniform_(-1.0/math.sqrt( self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
+    self.weight_o = nn.Parameter(torch.Tensor(self.hidden_size, vocab_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt( self.hidden_size)))
 
-    self.bias_x = nn.Parameter(torch.rand(16))
-    self.bias_h = nn.Parameter(torch.rand(16))
+    self.bias_x = nn.Parameter(torch.rand(self.hidden_size))
+    self.bias_h = nn.Parameter(torch.rand(self.hidden_size))
     self.bias_o = nn.Parameter(torch.rand(vocab_size))
 
-    self.H = nn.Parameter(torch.Tensor(16).uniform_())
+    self.H = nn.Parameter(torch.Tensor(self.hidden_size).uniform_())
 
 
   def forward(self, input_batch):
     sequence_length = input_batch.size()[0]
     batch_length    = input_batch.size()[1]
 
-    X = torch.index_select(self.lookup, 0, input_batch.view(-1)).view(sequence_length, batch_length, 32)
-    H_pre = self.H.expand(batch_length, 16)
+    X = torch.index_select(self.lookup, 0, input_batch.view(-1)).view(sequence_length, batch_length,  self.embed_size)
+    H_pre = self.H.expand(batch_length, self.hidden_size)
 
     outs = []
 
@@ -41,14 +43,14 @@ class RNNLM(nn.Module):
 
       H_pre = H_cur
 
-      outlayer_in = H_cur.mm(self.weight_o)# + self.bias_o
+      outlayer_in = H_cur.mm(self.weight_o) + self.bias_o
       
       m = nn.Softmax()
 
       softwax = m(outlayer_in)
 
       outs.append(torch.log(softwax))
-      #output[i,:,:] = torch.log(softwax)
+
     outs = torch.cat(outs)
     return outs.view(sequence_length, batch_length, self.vocab_size)
 
@@ -61,35 +63,36 @@ class BiRNNLM(nn.Module):
     super(BiRNNLM, self).__init__()
     # word embedding lookup table
     self.vocab_size = vocab_size
-    #self.lookup   = nn.Parameter(torch.Tensor(vocab_size, 32).uniform_())
-    self.lookup   = nn.Parameter(torch.Tensor(vocab_size, 32).uniform_(-1.0/math.sqrt(32), 1.0/math.sqrt(32)))
+    self.hidden_size = 8
+    self.embed_size = 32
+    self.lookup   = nn.Parameter(torch.Tensor(vocab_size, self.embed_size).uniform_(-1.0/math.sqrt(self.embed_size), 1.0/math.sqrt(self.embed_size)))
 
-    self.weight_xf = nn.Parameter(torch.Tensor(32, 8).uniform_(-1.0/math.sqrt(8), 1.0/math.sqrt(8)))
-    self.weight_hf = nn.Parameter(torch.Tensor(8, 8).uniform_(-1.0/math.sqrt(8), 1.0/math.sqrt(8)))
+    self.weight_xf = nn.Parameter(torch.Tensor(self.embed_size, self.hidden_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
+    self.weight_hf = nn.Parameter(torch.Tensor(self.hidden_size, self.hidden_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
 
-    self.weight_xb = nn.Parameter(torch.Tensor(32, 8).uniform_(-1.0/math.sqrt(8), 1.0/math.sqrt(8)))
-    self.weight_hb = nn.Parameter(torch.Tensor(8, 8).uniform_(-1.0/math.sqrt(8), 1.0/math.sqrt(8)))
-    self.weight_o = nn.Parameter(torch.Tensor(16, vocab_size).uniform_(-1.0/math.sqrt(vocab_size), 1.0/math.sqrt(vocab_size)))
+    self.weight_xb = nn.Parameter(torch.Tensor(self.embed_size, self.hidden_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
+    self.weight_hb = nn.Parameter(torch.Tensor(self.hidden_size, self.hidden_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
+    self.weight_o = nn.Parameter(torch.Tensor(self.hidden_size*2, vocab_size).uniform_(-1.0/math.sqrt(vocab_size), 1.0/math.sqrt(vocab_size)))
 
-    self.Hf = nn.Parameter(torch.Tensor(8).uniform_(-1.0/math.sqrt(8), 1.0/math.sqrt(8)))
-    self.Hb = nn.Parameter(torch.Tensor(8).uniform_(-1.0/math.sqrt(8), 1.0/math.sqrt(8)))
+    self.Hf = nn.Parameter(torch.Tensor(self.hidden_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
+    self.Hb = nn.Parameter(torch.Tensor(self.hidden_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
 
     #self.Hf = nn.Parameter(torch.ones(8))
     #self.Hb = nn.Parameter(torch.ones(8))
 
 
-    self.bias_x = nn.Parameter(torch.Tensor(8).uniform_(-1.0/math.sqrt(8), 1.0/math.sqrt(8)))
-    self.bias_hf = nn.Parameter(torch.Tensor(8).uniform_(-1.0/math.sqrt(8), 1.0/math.sqrt(8)))
-    self.bias_hb = nn.Parameter(torch.Tensor(8).uniform_(-1.0/math.sqrt(8), 1.0/math.sqrt(8)))
+    self.bias_x = nn.Parameter(torch.Tensor(self.hidden_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
+    self.bias_hf = nn.Parameter(torch.Tensor(self.hidden_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
+    self.bias_hb = nn.Parameter(torch.Tensor(self.hidden_size).uniform_(-1.0/math.sqrt(self.hidden_size), 1.0/math.sqrt(self.hidden_size)))
     self.bias_o = nn.Parameter(torch.Tensor(vocab_size).uniform_(-1.0/math.sqrt(vocab_size), 1.0/math.sqrt(vocab_size)))
 
   def forward(self, input_batch):
     sequence_length = input_batch.size()[0]
     batch_length    = input_batch.size()[1]
 
-    X = torch.index_select(self.lookup, 0, input_batch.view(-1)).view(sequence_length, batch_length, 32)
-    Hf_pre = self.Hf.expand(batch_length, 8)
-    Hb_pre = self.Hb.expand(batch_length, 8)
+    X = torch.index_select(self.lookup, 0, input_batch.view(-1)).view(sequence_length, batch_length, -1)
+    Hf_pre = self.Hf.expand(batch_length, self.hidden_size)
+    Hb_pre = self.Hb.expand(batch_length, self.hidden_size)
 
     Hf_table = [] 
     Hb_table = [] 
