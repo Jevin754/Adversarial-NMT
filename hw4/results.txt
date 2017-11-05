@@ -1,0 +1,137 @@
+Part I
+
+python train.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 48 --model_file data --gpuid 0
+2017-11-02 16:55:51 INFO: At 0-th epoch.
+2017-11-02 16:56:00 INFO: Average loss value per instance is 5.57531642914 at the end of epoch 0
+2017-11-02 16:56:00 INFO: At 1-th epoch.
+2017-11-02 16:56:09 INFO: Average loss value per instance is 5.30703210831 at the end of epoch 1
+2017-11-02 16:56:09 INFO: At 2-th epoch.
+2017-11-02 16:56:18 INFO: Average loss value per instance is 5.1893362999 at the end of epoch 2
+2017-11-02 16:56:18 INFO: At 3-th epoch.
+2017-11-02 16:56:26 INFO: Average loss value per instance is 5.13356018066 at the end of epoch 3
+2017-11-02 16:56:26 INFO: At 4-th epoch.
+2017-11-02 16:56:35 INFO: Average loss value per instance is 5.11838817596 at the end of epoch 4
+2017-11-02 16:56:35 INFO: At 5-th epoch.
+2017-11-02 16:56:44 INFO: Average loss value per instance is 5.15078163147 at the end of epoch 5
+2017-11-02 16:56:44 INFO: Early stopping triggered with threshold 5 (previous dev loss: 5.11838817596, current: 5.15078163147)
+
+
+python train.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 96 --model_file data --gpuid 0
+2017-11-02 16:57:22 INFO: At 0-th epoch.
+2017-11-02 16:57:28 INFO: Average loss value per instance is 6.02285432816 at the end of epoch 0
+2017-11-02 16:57:28 INFO: At 1-th epoch.
+2017-11-02 16:57:34 INFO: Average loss value per instance is 5.92976760864 at the end of epoch 1
+2017-11-02 16:57:34 INFO: At 2-th epoch.
+2017-11-02 16:57:39 INFO: Average loss value per instance is 5.56363677979 at the end of epoch 2
+2017-11-02 16:57:39 INFO: At 3-th epoch.
+2017-11-02 16:57:45 INFO: Average loss value per instance is 5.43032217026 at the end of epoch 3
+2017-11-02 16:57:45 INFO: At 4-th epoch.
+2017-11-02 16:57:51 INFO: Average loss value per instance is 5.39873123169 at the end of epoch 4
+2017-11-02 16:57:51 INFO: At 5-th epoch.
+2017-11-02 16:57:57 INFO: Average loss value per instance is 5.25589513779 at the end of epoch 5
+2017-11-02 16:57:57 INFO: At 6-th epoch.
+2017-11-02 16:58:03 INFO: Average loss value per instance is 5.2156586647 at the end of epoch 6
+2017-11-02 16:58:03 INFO: At 7-th epoch.
+2017-11-02 16:58:09 INFO: Average loss value per instance is 5.2028093338 at the end of epoch 7
+2017-11-02 16:58:09 INFO: At 8-th epoch.
+2017-11-02 16:58:15 INFO: Average loss value per instance is 5.14283514023 at the end of epoch 8
+2017-11-02 16:58:15 INFO: At 9-th epoch.
+2017-11-02 16:58:20 INFO: Average loss value per instance is 5.56338882446 at the end of epoch 9
+2017-11-02 16:58:20 INFO: Early stopping triggered with threshold 9 (previous dev loss: 5.14283514023, current: 5.56338882446)
+
+python train.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 24 --model_file data --gpuid 0
+2017-11-02 17:37:15 INFO: At 0-th epoch.
+2017-11-02 17:37:31 INFO: Average loss value per instance is 5.38260698318 at the end of epoch 0
+2017-11-02 17:37:31 INFO: At 1-th epoch.
+2017-11-02 17:37:47 INFO: Average loss value per instance is 5.17503547668 at the end of epoch 1
+2017-11-02 17:37:47 INFO: At 2-th epoch.
+2017-11-02 17:38:03 INFO: Average loss value per instance is 5.11651039124 at the end of epoch 2
+2017-11-02 17:38:03 INFO: At 3-th epoch.
+2017-11-02 17:38:19 INFO: Average loss value per instance is 5.09491014481 at the end of epoch 3
+2017-11-02 17:38:19 INFO: At 4-th epoch.
+2017-11-02 17:38:35 INFO: Average loss value per instance is 5.10557413101 at the end of epoch 4
+2017-11-02 17:38:35 INFO: Early stopping triggered with threshold 4 (previous dev loss: 5.09491014481, current: 5.10557413101)
+
+
+
+Part II
+
+python train_bi.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 48 --model_file data --gpuid 0
+2017-11-02 17:04:57 INFO: At 0-th epoch.
+2017-11-02 17:05:11 INFO: Average loss value per instance is 4.76327323914 at the end of epoch 0
+2017-11-02 17:05:11 INFO: At 1-th epoch.
+2017-11-02 17:05:25 INFO: Average loss value per instance is 4.45007419586 at the end of epoch 1
+2017-11-02 17:05:25 INFO: At 2-th epoch.
+2017-11-02 17:05:38 INFO: Average loss value per instance is 4.31666946411 at the end of epoch 2
+2017-11-02 17:05:38 INFO: At 3-th epoch.
+2017-11-02 17:05:52 INFO: Average loss value per instance is 4.27504825592 at the end of epoch 3
+2017-11-02 17:05:52 INFO: At 4-th epoch.
+2017-11-02 17:06:05 INFO: Average loss value per instance is 4.24417686462 at the end of epoch 4
+2017-11-02 17:06:05 INFO: At 5-th epoch.
+2017-11-02 17:06:19 INFO: Average loss value per instance is 4.23055362701 at the end of epoch 5
+2017-11-02 17:06:19 INFO: At 6-th epoch.
+2017-11-02 17:06:32 INFO: Average loss value per instance is 4.20383024216 at the end of epoch 6
+2017-11-02 17:06:32 INFO: At 7-th epoch.
+2017-11-02 17:06:46 INFO: Average loss value per instance is 4.18846225739 at the end of epoch 7
+2017-11-02 17:06:46 INFO: At 8-th epoch.
+2017-11-02 17:06:59 INFO: Average loss value per instance is 4.19870328903 at the end of epoch 8
+2017-11-02 17:06:59 INFO: Early stopping triggered with threshold 8 (previous dev loss: 4.18846225739, current: 4.19870328903)
+
+python train_bi.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 96 --model_file data --gpuid 0
+2017-11-02 17:07:42 INFO: At 0-th epoch.
+2017-11-02 17:07:50 INFO: Average loss value per instance is 5.38451051712 at the end of epoch 0
+2017-11-02 17:07:50 INFO: At 1-th epoch.
+2017-11-02 17:07:58 INFO: Average loss value per instance is 4.80213451385 at the end of epoch 1
+2017-11-02 17:07:58 INFO: At 2-th epoch.
+2017-11-02 17:08:06 INFO: Average loss value per instance is 4.55701065063 at the end of epoch 2
+2017-11-02 17:08:06 INFO: At 3-th epoch.
+2017-11-02 17:08:14 INFO: Average loss value per instance is 4.40597248077 at the end of epoch 3
+2017-11-02 17:08:14 INFO: At 4-th epoch.
+2017-11-02 17:08:22 INFO: Average loss value per instance is 4.38058662415 at the end of epoch 4
+2017-11-02 17:08:22 INFO: At 5-th epoch.
+2017-11-02 17:08:30 INFO: Average loss value per instance is 4.2602763176 at the end of epoch 5
+2017-11-02 17:08:31 INFO: At 6-th epoch.
+2017-11-02 17:08:39 INFO: Average loss value per instance is 4.26012849808 at the end of epoch 6
+2017-11-02 17:08:39 INFO: Early stopping triggered with threshold 6 (previous dev loss: 4.2602763176, current: 4.26012849808)
+
+python train_bi.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 24 --model_file data --gpuid 0
+2017-11-02 17:35:12 INFO: At 0-th epoch.
+2017-11-02 17:35:38 INFO: Average loss value per instance is 4.57006168365 at the end of epoch 0
+2017-11-02 17:35:38 INFO: At 1-th epoch.
+2017-11-02 17:36:03 INFO: Average loss value per instance is 4.31304645538 at the end of epoch 1
+2017-11-02 17:36:03 INFO: At 2-th epoch.
+2017-11-02 17:36:28 INFO: Average loss value per instance is 4.25352430344 at the end of epoch 2
+2017-11-02 17:36:28 INFO: At 3-th epoch.
+2017-11-02 17:36:54 INFO: Average loss value per instance is 4.24815940857 at the end of epoch 3
+2017-11-02 17:36:54 INFO: Early stopping triggered with threshold 3 (previous dev loss: 4.25352430344, current: 4.24815940857)
+
+
+Part 3
+
+LSTM
+
+python train_lstm.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 48 --model_file data --gpuid 0
+2017-11-02 17:24:32 INFO: At 0-th epoch.
+2017-11-02 17:25:03 INFO: Average loss value per instance is 4.32344484329 at the end of epoch 0
+2017-11-02 17:25:03 INFO: At 1-th epoch.
+2017-11-02 17:25:35 INFO: Average loss value per instance is 4.01870155334 at the end of epoch 1
+2017-11-02 17:25:35 INFO: At 2-th epoch.
+2017-11-02 17:26:06 INFO: Average loss value per instance is 3.95823192596 at the end of epoch 2
+2017-11-02 17:26:06 INFO: At 3-th epoch.
+2017-11-02 17:26:37 INFO: Average loss value per instance is 4.01560401917 at the end of epoch 3
+2017-11-02 17:26:37 INFO: Early stopping triggered with threshold 3 (previous dev loss: 3.95823192596, current: 4.01560401917)
+
+python train_lstm.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 24 --model_file data --gpuid 0
+2017-11-02 17:29:39 INFO: At 0-th epoch.
+2017-11-02 17:30:39 INFO: Average loss value per instance is 4.14687633514 at the end of epoch 0
+2017-11-02 17:30:39 INFO: At 1-th epoch.
+2017-11-02 17:31:38 INFO: Average loss value per instance is 4.01718997955 at the end of epoch 1
+2017-11-02 17:31:38 INFO: At 2-th epoch.
+2017-11-02 17:32:37 INFO: Average loss value per instance is 3.97384285927 at the end of epoch 2
+2017-11-02 17:32:37 INFO: At 3-th epoch.
+2017-11-02 17:33:35 INFO: Average loss value per instance is 3.97601246834 at the end of epoch 3
+2017-11-02 17:33:35 INFO: Early stopping triggered with threshold 3 (previous dev loss: 3.97384285927, current: 3.97601246834)
+
+
+
+
