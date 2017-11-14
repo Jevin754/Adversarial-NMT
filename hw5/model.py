@@ -18,9 +18,9 @@ class NMT(nn.Module):
     model_param = torch.load(open("data/model.param", 'rb'))
 
     self.embeddings_en = nn.Embedding(36616, 300)
-    self.embeddings_en.weight = nn.Parameter(model_param["encoder.embeddings.emb_luts.0.weight"])
+    self.embeddings_en.weight.data = (model_param["encoder.embeddings.emb_luts.0.weight"])
     self.embeddings_de = nn.Embedding(23262, 300)
-    self.embeddings_de.weight = nn.Parameter(model_param["decoder.embeddings.emb_luts.0.weight"])
+    self.embeddings_de.weight.data = (model_param["decoder.embeddings.emb_luts.0.weight"])
 
     # encoder
     self.lstm_en = nn.LSTM(self.src_word_emb_size, self.encoder_hidden_size, bidirectional = True)
@@ -50,13 +50,13 @@ class NMT(nn.Module):
     self.generator.bias.data = (model_param["0.bias"])
 
     #attention
-    self.weight_i = nn.Linear(1024,1024)
+    self.weight_i = nn.Linear(1024,1024,bias = False)
     self.weight_i.weight.data = (model_param["decoder.attn.linear_in.weight"])
 
-    # self.weight_o = nn.Linear(1024,2048)
-    # self.weight_o.weight.data = (model_param["decoder.attn.linear_out.weight"])
+    self.weight_o = nn.Linear(2048,1024,bias = False)
+    self.weight_o.weight.data = (model_param["decoder.attn.linear_out.weight"])
 
-    self.weight_o = nn.Parameter(model_param["decoder.attn.linear_out.weight"])
+    #self.weight_o = nn.Parameter(model_param["decoder.attn.linear_out.weight"])
 
     self.tanh = nn.Tanh()
     self.softmax = nn.Softmax()
@@ -114,7 +114,7 @@ class NMT(nn.Module):
         ct_input = torch.cat((s_t,h),1)  # 48 x 2048
         #print ct_input  
 
-        c_t = self.tanh(self.weight_o.mm(torch.t(ct_input))) # 1024 x 48
+        c_t = self.tanh(self.weight_o((ct_input))) # 1024 x 48
         #print c_t
            
         # decoder
@@ -125,7 +125,7 @@ class NMT(nn.Module):
             word_embed_de = self.embeddings_de(train_trg_batch[i-1])
 
        
-        decoder_input = torch.cat((torch.t(c_t), word_embed_de),1) # 48 x1324
+        decoder_input = torch.cat((c_t, word_embed_de),1) # 48 x1324
         #print decoder_input.size()
         
         h, c = self.lstm_de(decoder_input, (h,c))
