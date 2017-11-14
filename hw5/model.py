@@ -93,8 +93,8 @@ class NMT(nn.Module):
 
     for i in range(1,trg_sequence_lentgh):
 
-        a = Variable(torch.Tensor(sequence_length, batch_length))
-        s_t = Variable(torch.Tensor(batch_length, 1024))
+        a = Variable(torch.Tensor(sequence_length, batch_length)).cuda()
+        s_t = Variable(torch.Tensor(batch_length, 1024)).cuda()
         #print i
 
         for j in range(sequence_length):        
