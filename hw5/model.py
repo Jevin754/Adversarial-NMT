@@ -18,11 +18,11 @@ class NMT(nn.Module):
     model_param = torch.load(open("data/model.param", 'rb'))
 
     self.embeddings_en = nn.Embedding(36616, 300)
-    #self.embeddings_en.weight = nn.Parameter(model_param["encoder.embeddings.emb_luts.0.weight"])
-    self.embeddings_en.weight = nn.Parameter(model_param["encoder.embeddings.emb_luts.0.weight"]).cuda()
+    self.embeddings_en.weight.data = (model_param["encoder.embeddings.emb_luts.0.weight"].cuda())
+    #self.embeddings_en.weight = nn.Parameter(model_param["encoder.embeddings.emb_luts.0.weight"]).cuda()
     self.embeddings_de = nn.Embedding(23262, 300)
-    #self.embeddings_de.weight = nn.Parameter(model_param["decoder.embeddings.emb_luts.0.weight"])
-    self.embeddings_de.weight = nn.Parameter(model_param["decoder.embeddings.emb_luts.0.weight"]).cuda()
+    self.embeddings_de.weight.data = (model_param["decoder.embeddings.emb_luts.0.weight"].cuda())
+    #self.embeddings_de.weight = nn.Parameter(model_param["decoder.embeddings.emb_luts.0.weight"]).cuda()
 
     # encoder
     self.lstm_en = nn.LSTM(self.src_word_emb_size, self.encoder_hidden_size, bidirectional = True)
@@ -59,7 +59,7 @@ class NMT(nn.Module):
     # self.weight_o.weight.data = (model_param["decoder.attn.linear_out.weight"])
 
     #self.weight_o = nn.Parameter(model_param["decoder.attn.linear_out.weight"])
-    self.weight_o = nn.Parameter(model_param["decoder.attn.linear_out.weight"]).cuda()
+    self.weight_o = nn.Parameter(model_param["decoder.attn.linear_out.weight"].cuda())
 
     self.tanh = nn.Tanh()
     self.softmax = nn.Softmax()
