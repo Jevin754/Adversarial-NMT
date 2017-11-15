@@ -9,6 +9,8 @@ class NMT(nn.Module):
   def __init__(self, vocab_size):
     super(NMT, self).__init__()
 
+    self.train = True
+
     self.src_word_emb_size = 300
     self.encoder_hidden_size = 512
     self.decoder_hidden_size = 1024
@@ -63,23 +65,27 @@ class NMT(nn.Module):
     self.logsoftmax = nn.LogSoftmax()
 
 
-  def forward(self, train_src_batch, train_trg_batch = None):
+  def forward(self, train_src_batch, train_trg_batch = None, train = True):
+
+    self.train = train
 
     sequence_length = train_src_batch.size()[0] 
     batch_length    = train_src_batch.size()[1]
 
-    if train_trg_batch is not None:
-        trg_sequence_lentgh = train_trg_batch.size()[0]
-    else:
-        trg_sequence_lentgh = sequence_length
+    # if train_trg_batch is not None:
+    #     trg_sequence_lentgh = train_trg_batch.size()[0]
+    # else:
+    #     trg_sequence_lentgh = sequence_length
+
+    trg_sequence_lentgh = train_trg_batch.size()[0]
 
 
     # encoder
     word_embed_en = self.embeddings_en(train_src_batch)
     output_hs, (h,c) = self.lstm_en(word_embed_en) # sequence_length x batch_length x 1024
 
-    h = h.contiguous().view(batch_length, 1024)
-    c = c.contiguous().view(batch_length, 1024)
+    h = h.permute(1,2,0).contiguous().view(batch_length, 1024)
+    c = c.permute(1,2,0).contiguous().view(batch_length, 1024)
    
     vocab_distrubition = self.logsoftmax(self.generator(h))
 
@@ -125,12 +131,11 @@ class NMT(nn.Module):
         #print c_t
            
         # decoder
-        if train_trg_batch is None:
+        if self.train:
+            word_embed_de = self.embeddings_de(train_trg_batch[i-1])
+        else:
             (_, argmax) = torch.max(vocab_distrubition,1)
             word_embed_de = self.embeddings_de(argmax)
-        else:
-            word_embed_de = self.embeddings_de(train_trg_batch[i-1])
-
        
         decoder_input = torch.cat((c_t, word_embed_de),1) # 48 x1324
         #print decoder_input.size()
