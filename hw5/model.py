@@ -87,7 +87,7 @@ class NMT(nn.Module):
     # h = h.permute(1,2,0).contiguous().view(batch_length, 1024)
     # c = c.permute(1,2,0).contiguous().view(batch_length, 1024)
 
-    h = contiguous().view(batch_length, 1024)
+    h = h.contiguous().view(batch_length, 1024)
     c = c.contiguous().view(batch_length, 1024)
    
     vocab_distrubition = self.logsoftmax(self.generator(h))
