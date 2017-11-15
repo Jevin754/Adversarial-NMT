@@ -93,6 +93,7 @@ def main(options):
       loss.backward()
       optimizer.step()
 
+
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
     for batch_i in range(len(batched_dev_src)):
@@ -106,7 +107,8 @@ def main(options):
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
 
-      sys_out_batch = nmt(dev_src_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
+      # sys_out_batch = nmt(dev_src_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
+      sys_out_batch = nmt(dev_src_batch, dev_trg_batch)
       dev_trg_mask = dev_trg_mask.view(-1)
       dev_trg_batch = dev_trg_batch.view(-1)
       dev_trg_batch = dev_trg_batch.masked_select(dev_trg_mask)
