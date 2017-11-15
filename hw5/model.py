@@ -83,15 +83,22 @@ class NMT(nn.Module):
    
     vocab_distrubition = self.logsoftmax(self.generator(h))
 
-    output = Variable(torch.Tensor(trg_sequence_lentgh, batch_length, 23262))
-    output[0] = Variable(torch.Tensor(batch_length,23262).fill_(0))
+
+    #output = Variable(torch.Tensor(trg_sequence_lentgh, batch_length, 23262))
+    #output[0] = Variable(torch.Tensor(batch_length,23262).fill_(0))
+
+    output = Variable(torch.Tensor(trg_sequence_lentgh, batch_length, 23262)).cuda()
+    output[0] = Variable(torch.Tensor(batch_length,23262).fill_(0)).cuda()
 
     # attention, output is context vector ct 
 
     for i in range(1,trg_sequence_lentgh):
 
-        a = Variable(torch.Tensor(sequence_length, batch_length))
-        s_t = Variable(torch.Tensor(batch_length, 1024))
+        # a = Variable(torch.Tensor(sequence_length, batch_length))
+        # s_t = Variable(torch.Tensor(batch_length, 1024))
+
+        a = Variable(torch.Tensor(sequence_length, batch_length)).cuda()
+        s_t = Variable(torch.Tensor(batch_length, 1024)).cuda()
         #print i
 
         for j in range(sequence_length):        
