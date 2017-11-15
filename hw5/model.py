@@ -84,8 +84,11 @@ class NMT(nn.Module):
     word_embed_en = self.embeddings_en(train_src_batch)
     output_hs, (h,c) = self.lstm_en(word_embed_en) # sequence_length x batch_length x 1024
 
-    h = h.permute(1,2,0).contiguous().view(batch_length, 1024)
-    c = c.permute(1,2,0).contiguous().view(batch_length, 1024)
+    # h = h.permute(1,2,0).contiguous().view(batch_length, 1024)
+    # c = c.permute(1,2,0).contiguous().view(batch_length, 1024)
+
+    h = contiguous().view(batch_length, 1024)
+    c = c.contiguous().view(batch_length, 1024)
    
     vocab_distrubition = self.logsoftmax(self.generator(h))
 
