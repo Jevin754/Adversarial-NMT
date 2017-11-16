@@ -96,15 +96,17 @@ class NMT(nn.Module):
                     d_h = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
                     d_c = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
 
-            # if use_cuda:
-            #     decoding_h = Variable(d_h.data).cuda()
-            #     decoding_c = Variable(d_c.data).cuda()
-            # else:
-            #     decoding_h = Variable(d_h.data)
-            #     decoding_c = Variable(d_c.data)
+            if use_cuda:
+                d_h = Variable(d_h.data).cuda()
+                d_c = Variable(d_c.data).cuda()
+            else:
+                d_h = Variable(d_h.data)
+                d_c = Variable(d_c.data)
 
             # decoding_h = d_h
             # decoding_c = d_c
+
+            
 
 
             # Compute attention
