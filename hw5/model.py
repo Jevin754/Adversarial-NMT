@@ -129,7 +129,7 @@ class NMT(nn.Module):
             d_h, d_c = self.lstm_de(decoder_input, (decoding_h, decoding_c))
 
             # Generator
-            vocab_distrubition = self.logsoftmax(self.generator(d_h))
+            vocab_distrubition = self.logsoftmax((self.generator(d_h)).clamp(min=1e-8))
             output.append(vocab_distrubition)
 
         output = torch.cat(output)
