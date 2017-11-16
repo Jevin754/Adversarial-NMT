@@ -61,8 +61,8 @@ class NMT(nn.Module):
         #self.weight_o = nn.Parameter(model_param["decoder.attn.linear_out.weight"])
 
         self.tanh = nn.Tanh()
-        self.softmax = nn.Softmax()
-        self.logsoftmax = nn.LogSoftmax()
+        # self.softmax = nn.Softmax()
+        # self.logsoftmax = nn.functional.log_softmax()
 
 
     def forward(self, train_src_batch, train_trg_batch = None, is_train = True, use_cuda = True):
@@ -141,7 +141,8 @@ class NMT(nn.Module):
 
             # Generator
             # vocab_distrubition = self.logsoftmax((self.generator(d_h)).clamp(min=1e-8))
-            vocab_distrubition = self.logsoftmax((self.generator(d_h)))
+            # vocab_distrubition = self.logsoftmax((self.generator(d_h)))
+            vocab_distrubition = nn.functional.log_softmax(self.generator(d_h))
             output[i] = vocab_distrubition
 
         return output
