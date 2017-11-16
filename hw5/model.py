@@ -47,7 +47,11 @@ class NMT(nn.Module):
     self.lstm_de.bias_hh.data = (model_param["decoder.rnn.layers.0.bias_hh"])
 
     # generator
+<<<<<<< HEAD
     self.generator = nn.Linear(self.decoder_hidden_size, 23262)
+=======
+    self.generator = nn.Linear(self.decoder_hidden_size， 23262)
+>>>>>>> c8e94511629ba578eae46b9501c23f302f876474
     self.generator.weight.data = (model_param["0.weight"])
     self.generator.bias.data = (model_param["0.bias"])
 
