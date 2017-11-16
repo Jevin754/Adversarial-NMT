@@ -73,9 +73,13 @@ class NMT(nn.Module):
         src_embed = self.embeddings_en(train_src_batch)
 
         # Encoding
-        encoding_o, (encoding_h,encoding_c) = self.lstm_en(src_embed) # (seq_len, batch, hidden_size * num_directions)
+        # encoding_o, (encoding_h,encoding_c) = self.lstm_en(src_embed) # (seq_len, batch, hidden_size * num_directions)
+        encoding_o, (_, _) = self.lstm_en(src_embed) # (seq_len, batch, hidden_size * num_directions)
 
-        output = []
+        if use_cuda:
+            output = Variable(torch.Tensor(trg_seq_length, batch_length, 23262)).cuda()
+        else:
+            output = Variable(torch.Tensor(trg_seq_length, batch_length, 23262))
 
         # Initialize start vocab_distribution
         stdv = 1.0 / math.sqrt(23262)
@@ -92,23 +96,30 @@ class NMT(nn.Module):
                     d_h = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
                     d_c = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
 
-            if use_cuda:
-                decoding_h = Variable(d_h.data).cuda()
-                decoding_c = Variable(d_c.data).cuda()
-            else:
-                decoding_h = Variable(d_h.data)
-                decoding_c = Variable(d_c.data)
+            # if use_cuda:
+            #     decoding_h = Variable(d_h.data).cuda()
+            #     decoding_c = Variable(d_c.data).cuda()
+            # else:
+            #     decoding_h = Variable(d_h.data)
+            #     decoding_c = Variable(d_c.data)
+
+            # decoding_h = d_h
+            # decoding_c = d_c
+
 
             # Compute attention
-            scores = []
+            # scores = []
             mat_left_mul = encoding_o.matmul(self.weight_i.weight) # (seq_len, batch_size, 1024)
             # Compute score for each word
-            for idx, hidden_state in enumerate(encoding_o):
-                tmp = torch.sum(mat_left_mul[idx] * decoding_h, 1).view(-1, 1)
-                scores.append(tmp)
-            scores = torch.cat(scores, 1) # (batch_size, sequence_len)
-            association = torch.exp(scores)
-            association = (association / torch.sum(association, 1).unsqueeze(1) \
+            
+            # for idx, hidden_state in enumerate(encoding_o):
+            #     tmp = torch.sum(mat_left_mul[idx] * decoding_h, 1).view(-1, 1)
+            #     scores.append(tmp)
+
+            scores = torch.cat([torch.sum(mat_left_mul[idx] * d_h, 1).view(-1, 1) for idx, hidden_state in enumerate(encoding_o)], 1) # (batch_size, sequence_len)
+
+            # association = torch.exp(scores)
+            association = (torch.exp(scores) / torch.sum(torch.exp(scores), 1).unsqueeze(1) \
                             .expand(scores.size(0), scores.size(1))).t() # (sequence_len, batch)
 
             # Compute context vector
@@ -116,21 +127,21 @@ class NMT(nn.Module):
                 .expand(association.size(0), association.size(1), encoding_o.size(2)) * encoding_o # (sequence_len, batch, hidden_size)
             s_t = torch.sum(s_t, 0) # (batch, hidden_size)
 
-            c_t = self.tanh(self.weight_o(torch.cat([s_t, decoding_h], 1)))
+            c_t = self.tanh(self.weight_o(torch.cat([s_t, d_h], 1)))
 
             # Decoding
             if is_train:
                 decoder_input = torch.cat((c_t, self.embeddings_de(train_trg_batch[i])), 1)
             else:
                 (_, argmax) = torch.max(vocab_distrubition,1)
-                word_embed_de = self.embeddings_de(argmax)
-                decoder_input = torch.cat((c_t, word_embed_de),1) # 48 x1324
+                # word_embed_de = self.embeddings_de(argmax)
+                decoder_input = torch.cat((c_t, self.embeddings_de(argmax)),1) # 48 x1324
 
-            d_h, d_c = self.lstm_de(decoder_input, (decoding_h, decoding_c))
+            d_h, d_c = self.lstm_de(decoder_input, (d_h, d_c))
 
             # Generator
-            vocab_distrubition = self.logsoftmax((self.generator(d_h)).clamp(min=1e-8))
-            output.append(vocab_distrubition)
+            # vocab_distrubition = self.logsoftmax((self.generator(d_h)).clamp(min=1e-8))
+            vocab_distrubition = self.logsoftmax((self.generator(d_h)))
+            output[i] = vocab_distrubition
 
-        output = torch.cat(output)
-        return output.view(trg_seq_length, batch_length, 23262)
+        return output
