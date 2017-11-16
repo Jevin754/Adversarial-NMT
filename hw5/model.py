@@ -108,7 +108,7 @@ class NMT(nn.Module):
                 scores.append(tmp)
             scores = torch.cat(scores, 1) # (batch_size, sequence_len)
             association = torch.exp(scores)
-            association = (association / sum(association, 1).unsqueeze(1) \
+            association = (association / torch.sum(association, 1).unsqueeze(1) \
                             .expand(scores.size(0), scores.size(1))).t() # (sequence_len, batch)
 
             # Compute context vector
