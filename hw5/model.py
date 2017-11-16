@@ -106,7 +106,7 @@ class NMT(nn.Module):
             # decoding_h = d_h
             # decoding_c = d_c
 
-            
+
 
 
             # Compute attention
@@ -144,7 +144,8 @@ class NMT(nn.Module):
             # Generator
             # vocab_distrubition = self.logsoftmax((self.generator(d_h)).clamp(min=1e-8))
             # vocab_distrubition = self.logsoftmax((self.generator(d_h)))
-            vocab_distrubition = nn.functional.log_softmax(self.generator(d_h))
+            # vocab_distrubition = nn.functional.log_softmax(self.generator(d_h))
+            vocab_distrubition = nn.functional.log_softmax(self.generator(c_t))
             output[i] = vocab_distrubition
 
         return output
