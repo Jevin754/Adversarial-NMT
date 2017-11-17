@@ -75,7 +75,7 @@ class NMT(nn.Module):
 
         # Encoding
         # encoding_o, (encoding_h,encoding_c) = self.lstm_en(src_embed) # (seq_len, batch, hidden_size * num_directions)
-        encoding_o, (_, _) = self.lstm_en(src_embed) # (seq_len, batch, hidden_size * num_directions)
+        encoding_o, (e_h, e_c) = self.lstm_en(src_embed) # (seq_len, batch, hidden_size * num_directions)
 
         # if use_cuda:
         #     output = Variable(torch.Tensor(trg_seq_length, batch_length, 23262)).cuda()
@@ -84,9 +84,14 @@ class NMT(nn.Module):
 
         output = []
 
-        # Initialize start vocab_distribution
-        stdv = 1.0 / math.sqrt(23262)
-        vocab_distrubition = torch.Tensor(batch_length, 23262).uniform_(-stdv, stdv)
+        if use_cuda:
+            output.append(Variable(torch.FloatTensor(batch_length, 23262).fill_(0).cuda()).unsqueeze(0))
+        else:
+            output.append(Variable(torch.FloatTensor(batch_length, 23262).fill_(0)).unsqueeze(0))
+
+        # # Initialize start vocab_distribution
+        # stdv = 1.0 / math.sqrt(23262)
+        # vocab_distrubition = torch.Tensor(batch_length, 23262).uniform_(-stdv, stdv)
 
         # Pre-compute attention score matrix left part
         mat_left_mul = encoding_o.matmul(self.weight_i.weight)  # (seq_len, batch_size, 1024)
@@ -100,16 +105,11 @@ class NMT(nn.Module):
         if use_cuda:
             argmax = argmax.cuda()
 
-        for i in range(trg_seq_length):
+        for i in range(1, trg_seq_length):
             # Initialize the pesudo decoding hidden state, cell state
-            if i == 0:
-                stdv = 1.0 / math.sqrt(self.decoder_hidden_size)
-                if use_cuda:
-                    d_h = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv)).cuda()
-                    d_c = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv)).cuda()
-                else:
-                    d_h = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
-                    d_c = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
+            if i == 1:
+                d_h = torch.cat(e_h, 1)
+                d_c = torch.cat(e_c, 1)
 
             if use_cuda:
                 d_h = Variable(d_h.data).cuda()
@@ -140,13 +140,13 @@ class NMT(nn.Module):
             # Compute context vector
             s_t = association.unsqueeze(2) \
                 .expand(association.size(0), association.size(1), encoding_o.size(2)) * encoding_o # (sequence_len, batch, hidden_size)--sum->(batch, hidden_size)
-            s_t = torch.sum(s_t, 0) #
+            s_t = torch.sum(s_t, 0) 
 
             c_t = self.tanh(self.weight_o(torch.cat([s_t, d_h], 1)))
 
             # Decoding
             if is_train:
-                decoder_input = torch.cat(((Variable(c_t.data)), d_embed[i,:,:]), 1)
+                decoder_input = torch.cat(((Variable(c_t.data)), d_embed[i-1,:,:]), 1)
             else:
                 # (_, argmax) = torch.max(vocab_distrubition, 1)
                 word_embed_de = self.embeddings_de(argmax)

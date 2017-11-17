@@ -94,6 +94,7 @@ def main(options):
       # # gradient clipping
       # torch.nn.utils.clip_grad_norm(nmt.parameters(), 1.0)
       optimizer.step()
+      if i == 5: break
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
