@@ -111,15 +111,15 @@ class NMT(nn.Module):
                     d_h = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
                     d_c = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
 
-            # if use_cuda:
-            #     d_h = Variable(d_h.data).cuda()
-            #     d_c = Variable(d_c.data).cuda()
-            # else:
-            #     d_h = Variable(d_h.data)
-            #     d_c = Variable(d_c.data)
+            if use_cuda:
+                d_h = Variable(d_h.data).cuda()
+                d_c = Variable(d_c.data).cuda()
+            else:
+                d_h = Variable(d_h.data)
+                d_c = Variable(d_c.data)
 
-            d_h = d_h.detach()
-            d_c = d_c.detach()
+            # d_h = d_h.detach()
+            # d_c = d_c.detach()
 
             # Compute attention
             # scores = []
