@@ -121,9 +121,9 @@ def main(options):
     dev_avg_loss = dev_loss / len(batched_dev_src)
     logging.info("Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss.data[0], epoch_i))
 
-    if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
-      logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
-      break
+    # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
+    #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
+    #   break
     torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
 
