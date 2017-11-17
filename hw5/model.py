@@ -19,6 +19,7 @@ class NMT(nn.Module):
 
         model_param = torch.load(open("data/model.param", 'rb'))
 
+
         self.embeddings_en = nn.Embedding(36616, 300)
         self.embeddings_en.weight.data = (model_param["encoder.embeddings.emb_luts.0.weight"])
         self.embeddings_de = nn.Embedding(23262, 300)
@@ -76,14 +77,19 @@ class NMT(nn.Module):
         # encoding_o, (encoding_h,encoding_c) = self.lstm_en(src_embed) # (seq_len, batch, hidden_size * num_directions)
         encoding_o, (_, _) = self.lstm_en(src_embed) # (seq_len, batch, hidden_size * num_directions)
 
-        if use_cuda:
-            output = Variable(torch.Tensor(trg_seq_length, batch_length, 23262)).cuda()
-        else:
-            output = Variable(torch.Tensor(trg_seq_length, batch_length, 23262))
+        # if use_cuda:
+        #     output = Variable(torch.Tensor(trg_seq_length, batch_length, 23262)).cuda()
+        # else:
+        #     output = Variable(torch.Tensor(trg_seq_length, batch_length, 23262))
+
+        output = []
 
         # Initialize start vocab_distribution
         stdv = 1.0 / math.sqrt(23262)
         vocab_distrubition = torch.Tensor(batch_length, 23262).uniform_(-stdv, stdv)
+
+        # Pre-compute attention score matrix left part
+        mat_left_mul = encoding_o.matmul(self.weight_i.weight)  # (seq_len, batch_size, 1024)
 
         for i in range(trg_seq_length):
             # Initialize the pesudo decoding hidden state, cell state
@@ -96,38 +102,36 @@ class NMT(nn.Module):
                     d_h = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
                     d_c = Variable(torch.Tensor(batch_length, self.decoder_hidden_size).uniform_(-stdv, stdv))
 
-            if use_cuda:
-                d_h = Variable(d_h.data).cuda()
-                d_c = Variable(d_c.data).cuda()
-            else:
-                d_h = Variable(d_h.data)
-                d_c = Variable(d_c.data)
+            # if use_cuda:
+            #     d_h = Variable(d_h.data).cuda()
+            #     d_c = Variable(d_c.data).cuda()
+            # else:
+            #     d_h = Variable(d_h.data)
+            #     d_c = Variable(d_c.data)
 
-            # decoding_h = d_h
-            # decoding_c = d_c
-
-
-
+            d_h = d_h.detach()
+            d_c = d_c.detach()
 
             # Compute attention
             # scores = []
-            mat_left_mul = encoding_o.matmul(self.weight_i.weight) # (seq_len, batch_size, 1024)
+
             # Compute score for each word
             
             # for idx, hidden_state in enumerate(encoding_o):
             #     tmp = torch.sum(mat_left_mul[idx] * decoding_h, 1).view(-1, 1)
             #     scores.append(tmp)
 
-            scores = torch.cat([torch.sum(mat_left_mul[idx] * d_h, 1).view(-1, 1) for idx, hidden_state in enumerate(encoding_o)], 1) # (batch_size, sequence_len)
+            # scores = torch.cat([torch.sum(mat_left_mul[idx] * d_h, 1).view(-1, 1) for idx, _ in enumerate(encoding_o)], 1) # (batch_size, sequence_len)
+            scores = torch.cat([torch.sum(mat_left_mul[idx] * d_h, 1).view(-1, 1) for idx in range(encoding_o.size(0))],1)  # (batch_size, sequence_len)
 
-            # association = torch.exp(scores)
-            association = (torch.exp(scores) / torch.sum(torch.exp(scores), 1).unsqueeze(1) \
+            association = torch.exp(scores)
+            association = (association / torch.sum(association, 1).unsqueeze(1) \
                             .expand(scores.size(0), scores.size(1))).t() # (sequence_len, batch)
 
             # Compute context vector
             s_t = association.unsqueeze(2) \
-                .expand(association.size(0), association.size(1), encoding_o.size(2)) * encoding_o # (sequence_len, batch, hidden_size)
-            s_t = torch.sum(s_t, 0) # (batch, hidden_size)
+                .expand(association.size(0), association.size(1), encoding_o.size(2)) * encoding_o # (sequence_len, batch, hidden_size)--sum->(batch, hidden_size)
+            s_t = torch.sum(s_t, 0) #
 
             c_t = self.tanh(self.weight_o(torch.cat([s_t, d_h], 1)))
 
@@ -145,7 +149,10 @@ class NMT(nn.Module):
             # vocab_distrubition = self.logsoftmax((self.generator(d_h)).clamp(min=1e-8))
             # vocab_distrubition = self.logsoftmax((self.generator(d_h)))
             # vocab_distrubition = nn.functional.log_softmax(self.generator(d_h))
-            vocab_distrubition = nn.functional.log_softmax(self.generator(c_t))
-            output[i] = vocab_distrubition
+            vocab_distrubition = nn.functional.log_softmax(self.generator(d_h)).unsqueeze(0)
 
-        return output
+            output.append(vocab_distrubition)
+
+            del scores, association, s_t, c_t, decoder_input
+
+        return torch.cat(output, 0)
