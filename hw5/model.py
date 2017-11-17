@@ -95,6 +95,11 @@ class NMT(nn.Module):
         if train_trg_batch is not None:
             d_embed = self.embeddings_de(train_trg_batch)
 
+        # Initialize argmax
+        argmax = Variable(torch.LongTensor(batch_length).fill_(2))
+        if use_cuda:
+            argmax = argmax.cuda()
+
         for i in range(trg_seq_length):
             # Initialize the pesudo decoding hidden state, cell state
             if i == 0:
@@ -143,9 +148,9 @@ class NMT(nn.Module):
             if is_train:
                 decoder_input = torch.cat(((Variable(c_t.data)), d_embed[i,:,:]), 1)
             else:
-                (_, argmax) = torch.max(vocab_distrubition,1)
-                # word_embed_de = self.embeddings_de(argmax)
-                decoder_input = torch.cat((c_t, self.embeddings_de(argmax)),1) # 48 x1324
+                # (_, argmax) = torch.max(vocab_distrubition, 1)
+                word_embed_de = self.embeddings_de(argmax)
+                decoder_input = torch.cat((c_t, word_embed_de), 1)  # 48 x1324
 
             d_h, d_c = self.lstm_de(decoder_input, (d_h, d_c))
 
@@ -154,6 +159,8 @@ class NMT(nn.Module):
             # vocab_distrubition = self.logsoftmax((self.generator(d_h)))
             # vocab_distrubition = nn.functional.log_softmax(self.generator(d_h))
             vocab_distrubition = nn.functional.log_softmax(self.generator(d_h)).unsqueeze(0)
+
+            (_, argmax) = torch.max(vocab_distrubition[0], 1)
 
             output.append(vocab_distrubition)
 
