@@ -91,6 +91,8 @@ def main(options):
       logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
       optimizer.zero_grad()
       loss.backward()
+      # gradient clipping
+      torch.nn.utils.clip_grad_norm(nmt.parameters(), 1.0)
       optimizer.step()
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
