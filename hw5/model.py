@@ -91,6 +91,10 @@ class NMT(nn.Module):
         # Pre-compute attention score matrix left part
         mat_left_mul = encoding_o.matmul(self.weight_i.weight)  # (seq_len, batch_size, 1024)
 
+        # Decoding for training
+        if train_trg_batch is not None:
+            d_embed = self.embeddings_de(train_trg_batch)
+
         for i in range(trg_seq_length):
             # Initialize the pesudo decoding hidden state, cell state
             if i == 0:
@@ -137,7 +141,7 @@ class NMT(nn.Module):
 
             # Decoding
             if is_train:
-                decoder_input = torch.cat((c_t, self.embeddings_de(train_trg_batch[i])), 1)
+                decoder_input = torch.cat(((Variable(c_t.data)), d_embed[i,:,:]), 1)
             else:
                 (_, argmax) = torch.max(vocab_distrubition,1)
                 # word_embed_de = self.embeddings_de(argmax)
@@ -149,7 +153,7 @@ class NMT(nn.Module):
             # vocab_distrubition = self.logsoftmax((self.generator(d_h)).clamp(min=1e-8))
             # vocab_distrubition = self.logsoftmax((self.generator(d_h)))
             # vocab_distrubition = nn.functional.log_softmax(self.generator(d_h))
-            vocab_distrubition = nn.functional.log_softmax(self.generator(c_t)).unsqueeze(0)
+            vocab_distrubition = nn.functional.log_softmax(self.generator(d_h)).unsqueeze(0)
 
             output.append(vocab_distrubition)
 
