@@ -94,6 +94,7 @@ def main(options):
       # # gradient clipping
       # torch.nn.utils.clip_grad_norm(nmt.parameters(), 1.0)
       optimizer.step()
+      del loss, train_src_batch, train_trg_batch, train_src_mask, train_trg_mask
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0

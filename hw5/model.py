@@ -98,12 +98,12 @@ class NMT(nn.Module):
                 d_c = torch.cat(e_c, 1)
 
             if self.use_cuda:
-                d_h = Variable(d_h.data).cuda()
-                d_c = Variable(d_c.data).cuda()
+                d_h = d_h.detach().cuda()
+                d_c = d_c.detach().cuda()
 
             else:
-                d_h = Variable(d_h.data)
-                d_c = Variable(d_c.data)
+                d_h = d_h.detach()
+                d_c = d_c.detach()
 
             # Decoding
             if is_train:
@@ -117,8 +117,8 @@ class NMT(nn.Module):
                     decoder_input = torch.cat((self.init_st.expand(batch_length, self.context_vector_size),
                                                self.init_embedding_de.expand(batch_length, self.src_word_emb_size)), 1)  # 48 x1324
                 else:
-                    word_embed_de = self.embeddings_de(argmax)
-                    decoder_input = torch.cat((s_t, word_embed_de), 1)  # 48 x1324
+                    decoder_input = torch.cat((s_t, self.embeddings_de(argmax)), 1)  # 48 x1324
+
             d_h, d_c = self.lstm_de(decoder_input, (d_h, d_c))
 
             scores = torch.cat([torch.sum(mat_left_mul[idx] * d_h, 1).view(-1, 1) for idx in range(encoding_o.size(0))],1)  # (batch_size, sequence_len)
