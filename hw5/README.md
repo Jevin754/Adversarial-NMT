@@ -1,12 +1,3 @@
-Change of Deliverable Requirements for HW5
-
-It is not straight-forward to load the intermediate model and carry out training starting from there. To make sure people can have something by the deadline, I'd like to downgrade the deliverable requirements to meet that'll give you full credit:
- 
-+ If you have already load the provided model and get reasonable loss on the devset, keep working on that and you'll earn full credit by beating the original baseline
-+ If you haven't managed to load the provided model, you may alternatively run experiments on this easy dataset from scratch, which is a grapheme to phoneme task that requires you to "translate" the text form of words into their pronunciation. This data will take ~7mins to run one epoch on the GPU with the implementation that I have (yours might be slower, but should still be pretty scalable) and will take ~5 epochs to converge on devset. If you beat the baseline for this data you'll earn full credit as well.
-
-The submitted edition is G2P_hw5.
-
 ---
 layout: default
 img: cover
@@ -19,6 +10,15 @@ active_tab: homework
 =============================================================
 
 Due: November 17th, 2017
+
+Change of Deliverable Requirements for HW5
+
+It is not straight-forward to load the intermediate model and carry out training starting from there. To make sure people can have something by the deadline, I'd like to downgrade the deliverable requirements to meet that'll give you full credit:
+ 
++ If you have already load the provided model and get reasonable loss on the devset, keep working on that and you'll earn full credit by beating the original baseline
++ If you haven't managed to load the provided model, you may alternatively run experiments on this easy dataset from scratch, which is a grapheme to phoneme task that requires you to "translate" the text form of words into their pronunciation. This data will take ~7mins to run one epoch on the GPU with the implementation that I have (yours might be slower, but should still be pretty scalable) and will take ~5 epochs to converge on devset. If you beat the baseline for this data you'll earn full credit as well.
+
+The submitted edition is G2P_hw5.
 
 Imagine it's 2022 and you are training a German-English neural machine translation (NMT) system. Suddenly, a nuclear bomb is detonated in Los Angeles and caused a massive [blackout](https://en.wikipedia.org/wiki/Blade_Runner_Black_Out_2022). As a result, all the neural machine translation codebase in the world is destroyed. Fortunately, you placed your data and the most recent model dump in [this Google drive folder](https://drive.google.com/drive/folders/1FBynY6BiNeRceMqLlvP9jyF27KFt1xh8?usp=sharing), which is preserved during the blackout.
 
