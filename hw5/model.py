@@ -59,14 +59,6 @@ class NMT(nn.Module):
         self.weight_o = nn.Linear(2048,1024,bias = False)
         self.weight_o.weight.data = (model_param["decoder.attn.linear_out.weight"])
 
-        # other initialzation
-        if use_cuda:
-            self.init_embedding_de = nn.Parameter(torch.zeros(1, self.src_word_emb_size)).cuda()
-            self.init_st = nn.Parameter(torch.zeros(1, self.context_vector_size)).cuda()
-        else:
-            self.init_embedding_de = nn.Parameter(torch.zeros(1, self.src_word_emb_size))
-            self.init_st = nn.Parameter(torch.zeros(1, self.context_vector_size))
-
         self.tanh = nn.Tanh()
 
 
@@ -108,7 +100,7 @@ class NMT(nn.Module):
             # Decoding
             if is_train:
                 if i == 0:
-                    decoder_input = torch.cat((self.init_st.expand(batch_length, self.context_vector_size),
+                    decoder_input = torch.cat((d_embed[0].expand(batch_length, self.context_vector_size),
                                                self.init_embedding_de.expand(batch_length, self.src_word_emb_size)), 1)
                 else:
                     decoder_input = torch.cat((s_t, d_embed[i - 1, :, :]), 1)
