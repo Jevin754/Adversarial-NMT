@@ -60,8 +60,8 @@ def main(options):
 
 
   # Initialize models
-  encoder = EncoderRNN() 
-  decoder = LuongAttnDecoderRNN()
+  encoder = EncoderRNN(trg_vocab_size, word_emb_size, hidden_size) 
+  decoder = LuongAttnDecoderRNN('general', trg_vocab_size, word_emb_size,hidden_size, trg_vocab_size)
 
   if use_cuda > 0:
     encoder.cuda()
@@ -93,7 +93,29 @@ def main(options):
         train_src_mask = train_src_mask.cuda()
         train_trg_mask = train_trg_mask.cuda()
 
-      sys_out_batch = nmt(train_src_batch, train_trg_batch, is_train = True)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
+      # Encoding
+      encoder_outputs, (e_h,e_c) = encoder(train_src_batch)
+
+      # Preparing for decoding
+      trg_seq_len = train_trg_batch.size(0)
+      batch_size = train_trg_batch.size(1)
+      sys_out_batch = Variable(torch.zeros(trg_seq_len, batch_size, trg_vocab_size)) # (trg_seq_len, batch_size, trg_vocab_size)
+      decoder_input = Variable(torch.LongTensor(trg_vocab.stoi['<s>'] * batch_size))
+      d_h = Variable(e_h.data)
+      d_c = Variable(e_c.data)
+      if use_cuda > 0:
+        decoder_input = decoder_input.cuda()
+        d_h = d_h.cuda()
+        d_c = d_c.cuda()
+        sys_out_batch = sys_out_batch.cuda()
+
+      # Decoding
+      for i in range(trg_seq_len):
+        decoder_output, (d_h, d_c) = decoder(decoder_input, (d_h, d_c), encoder_outputs)
+        sys_out_batch[i] = decoder_output
+        decoder_input = train_trg_batch[i]
+
+
       train_trg_mask = train_trg_mask.view(-1)
       train_trg_batch = train_trg_batch.view(-1)
       train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
@@ -124,7 +146,28 @@ def main(options):
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
 
+      # Encoding
+      encoder_outputs, (e_h,e_c) = encoder(dev_src_batch)
 
+      # Preparing for decoding
+      trg_seq_len = dev_src_batch.size(0)
+      batch_size = dev_src_batch.size(1)
+      sys_out_batch = Variable(torch.zeros(trg_seq_len, batch_size, trg_vocab_size)) # (trg_seq_len, batch_size, trg_vocab_size)
+      decoder_input = Variable(torch.LongTensor(trg_vocab.stoi['<s>'] * batch_size))
+      d_h = Variable(e_h.data)
+      d_c = Variable(e_c.data)
+      if use_cuda > 0:
+        decoder_input = decoder_input.cuda()
+        d_h = d_h.cuda()
+        d_c = d_c.cuda()
+        sys_out_batch = sys_out_batch.cuda()
+
+      # Decoding
+      for i in range(trg_seq_len):
+        decoder_output, (d_h, d_c) = decoder(decoder_input, (d_h, d_c), encoder_outputs)
+        sys_out_batch[i] = decoder_output
+        top_val, top_inx = decoder_output.topk(1)
+        decoder_input = top_inx
 
       sys_out_batch = nmt(dev_src_batch, dev_trg_batch, is_train = False)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
       dev_trg_mask = dev_trg_mask.view(-1)

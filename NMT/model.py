@@ -7,16 +7,16 @@ import math
 
 # Encoder Module
 class EncoderRNN(nn.Module):
-    def __init__(self, input_size, embed_size, hidden_size, n_layers=1, dropout=0.1):
+    def __init__(self, input_vocab_size, embed_size, hidden_size, n_layers=1, dropout=0.1):
         super(EncoderRNN, self).__init__()
         
-        self.input_size = input_size
+        self.input_vocab_size = input_vocab_size
         self.embed_size = embed_size
         self.hidden_size = hidden_size
         self.n_layers = n_layers
         self.dropout = dropout
         
-        self.embedding = nn.Embedding(input_size, embed_size)
+        self.embedding = nn.Embedding(input_vocab_size, embed_size)
         self.lstm = nn.LSTM(embed_size, hidden_size, n_layers, dropout=self.dropout, bidirectional=True)
         
     def forward(self, input_seqs_batch):
@@ -73,19 +73,19 @@ class Attn(nn.Module):
 
 # Luong Attention Decoder Module
 class LuongAttnDecoderRNN(nn.Module):
-    def __init__(self, attn_model, input_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0.1):
+    def __init__(self, attn_model, input_vocab_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0.1):
         super(LuongAttnDecoderRNN, self).__init__()
 
         # Keep for reference
         self.attn_model = attn_model
-        self.input_size = input_size
+        self.input_vocab_size = input_vocab_size
         self.hidden_size = hidden_size
         self.embed_size = embed_size
         self.n_layers = n_layers
         self.dropout = dropout
 
         # Define layers
-        self.embedding = nn.Embedding(input_size, embed_size)
+        self.embedding = nn.Embedding(input_vocab_size, embed_size)
         self.embedding_dropout = nn.Dropout(dropout)
         self.lstm = nn.LSTM(embed_size, hidden_size, n_layers, dropout=dropout)
         self.concat = nn.Linear(hidden_size * 2, hidden_size)
@@ -95,7 +95,7 @@ class LuongAttnDecoderRNN(nn.Module):
         if attn_model != None:
         	self.attn = Attn(attn_model, hidden_size)
 
-    def forward(self, attn_model, input_seq, last_hidden, encoder_outputs):
+    def forward(self, input_seq, last_hidden, encoder_outputs):
         # Note: we run this one step at a time
 
         # Get the embedding of the current input word (last output word)
