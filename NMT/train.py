@@ -8,7 +8,7 @@ import logging
 import torch
 from torch import cuda
 from torch.autograd import Variable
-from model import NMT
+from model import EncoderRNN, Attn, LuongAttnDecoderRNN
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
@@ -54,15 +54,28 @@ def main(options):
   batched_dev_trg, batched_dev_trg_mask = utils.tensor.advanced_batchize_no_sort(trg_dev, options.batch_size, trg_vocab.stoi["<blank>"], sort_index)
 
   trg_vocab_size = len(trg_vocab)
+  src_vocab_size = len(src_vocab)
+  word_emb_size = 300
+  hidden_size = 1024
 
-  nmt = NMT(trg_vocab_size) # TODO: add more arguments as necessary 
+
+  # Initialize models
+  encoder = EncoderRNN() 
+  decoder = LuongAttnDecoderRNN()
+
   if use_cuda > 0:
-    nmt.cuda()
+    encoder.cuda()
+    decoder.cuda()
   else:
-    nmt.cpu()
+    encoder.cpu()
+    decoder.cpu()
 
   criterion = torch.nn.NLLLoss()
-  optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
+
+  # Configure optimization
+  encoder_optimizer = eval("torch.optim." + options.optimizer)(encoder.parameters(), options.learning_rate)
+  decoder_optimizer = eval("torch.optim." + options.optimizer)(decoder.parameters(), options.learning_rate)
+  
 
   # main training loop
   last_dev_avg_loss = float("inf")
@@ -89,12 +102,14 @@ def main(options):
       sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
       loss = criterion(sys_out_batch, train_trg_batch)
       logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
-      optimizer.zero_grad()
+      
+      encoder_optimizer.zero_grad()
+      decoder_optimizer.zero_grad()
       loss.backward()
       # # gradient clipping
       # torch.nn.utils.clip_grad_norm(nmt.parameters(), 1.0)
-      optimizer.step()
-      del loss, train_src_batch, train_trg_batch, train_src_mask, train_trg_mask
+      encoder_optimizer.step()
+      decoder_optimizer.step()
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
@@ -108,6 +123,8 @@ def main(options):
         dev_trg_batch = dev_trg_batch.cuda()
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
+
+
 
       sys_out_batch = nmt(dev_src_batch, dev_trg_batch, is_train = False)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
       dev_trg_mask = dev_trg_mask.view(-1)
