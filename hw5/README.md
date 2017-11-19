@@ -6,6 +6,7 @@ It is not straight-forward to load the intermediate model and carry out training
 + If you haven't managed to load the provided model, you may alternatively run experiments on this easy dataset from scratch, which is a grapheme to phoneme task that requires you to "translate" the text form of words into their pronunciation. This data will take ~7mins to run one epoch on the GPU with the implementation that I have (yours might be slower, but should still be pretty scalable) and will take ~5 epochs to converge on devset. If you beat the baseline for this data you'll earn full credit as well.
 
 The submitted edition is hw5_new.
+
 ---
 layout: default
 img: cover
