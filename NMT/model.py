@@ -30,6 +30,12 @@ class NMT(nn.Module):
             self.encoder.cpu()
             self.decoder.cpu()
 
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        for weight in self.parameters():
+          weight.data.uniform_(-0.1, 0.1)
+
     def forward(self, src_batch, trg_batch, is_train):
         # Encoding
         encoder_outputs, (e_h,e_c) = self.encoder(src_batch)
