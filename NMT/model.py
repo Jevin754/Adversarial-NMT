@@ -54,7 +54,7 @@ class NMT(nn.Module):
 
         # Decoding
         for d_idx in range(trg_seq_len):
-            decoder_output, (d_h, d_c) = self.decoder(decoder_input, (d_h, d_c) encoder_outputs)
+            decoder_output, (d_h, d_c) = self.decoder(decoder_input, (d_h, d_c), encoder_outputs)
             sys_out_batch[d_idx] = decoder_output
             if is_train:
                 decoder_input = trg_batch[d_idx]
