@@ -69,7 +69,8 @@ def main(options):
   criterion = torch.nn.NLLLoss()
 
   # Configure optimization
-  optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
+  encode_optimizer = eval("torch.optim." + options.optimizer)(nmt.encoder.parameters(), options.learning_rate)
+  decode_optimizer = eval("torch.optim." + options.optimizer)(nmt.decoder.parameters(), options.learning_rate)
   
   # main training loop
   last_dev_avg_loss = float("inf")
@@ -98,11 +99,14 @@ def main(options):
       loss = criterion(sys_out_batch, train_trg_batch)
       logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
       
-      optimizer.zero_grad()
+      encode_optimizer.zero_grad()
+      decode_optimizer.zero_grad()
       loss.backward()
       # # gradient clipping
-      # torch.nn.utils.clip_grad_norm(nmt.parameters(), 1.0)
-      optimizer.step()
+      torch.nn.utils.clip_grad_norm(nmt.encoder.parameters(), 50.0)
+      torch.nn.utils.clip_grad_norm(nmt.decoder.parameters(), 50.0)
+      encode_optimizer.step()
+      decode_optimizer.step()
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
@@ -131,9 +135,9 @@ def main(options):
     dev_avg_loss = dev_loss / len(batched_dev_src)
     logging.info("Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss.data[0], epoch_i))
 
-    if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
-      logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
-      break
+    # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
+    #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
+    #   break
     torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
 
