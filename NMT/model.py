@@ -54,7 +54,7 @@ class NMT(nn.Module):
 
         # Decoding
         for d_idx in range(trg_seq_len):
-            decoder_output, (d_h, d_c) = self.decoder(decoder_input, (d_h.detach(), d_c.detach()), encoder_outputs)
+            decoder_output, (d_h, d_c) = self.decoder(decoder_input, (d_h, d_c, encoder_outputs)
             sys_out_batch[d_idx] = decoder_output
             if is_train:
                 decoder_input = trg_batch[d_idx]
@@ -63,9 +63,6 @@ class NMT(nn.Module):
                 decoder_input = top_inx
 
         return sys_out_batch
-
-
-
 
 
 # Encoder Module
@@ -103,9 +100,8 @@ class Attn(nn.Module):
         if self.method == 'general':
             self.attn = nn.Linear(self.hidden_size, hidden_size, bias=False)
 
-        elif self.method == 'concat':
-            self.attn = nn.Linear(self.hidden_size * 2, hidden_size, bias=False)
-            self.v = nn.Parameter(torch.FloatTensor(batch_size, 1, hidden_size))
+        else:
+            raise NotImplementedError
 
 
     def forward(self, hidden, encoder_outputs):
@@ -122,17 +118,8 @@ class Attn(nn.Module):
             energy = torch.sum(energy * hidden, dim = 2)
             return energy
 
-        elif self.method == 'concat':
-            hidden = hidden * Variable(encoder_output.data.new(encoder_output.size()).fill_(1)) # broadcast hidden to encoder_outputs size
-            energy = self.attn(torch.cat((hidden, encoder_output), -1))
-            energy = F.tanh(energy.transpose(2, 1))
-            energy = self.v.bmm(energy)
-            return energy
         else:
-            #self.method == 'dot':
-            encoder_output = encoder_output.transpose(2, 1)
-            energy = hidden.bmm(encoder_output)
-            return energy
+            raise NotImplementedError
 
 # Luong Attention Decoder Module
 class LuongAttnDecoderRNN(nn.Module):
