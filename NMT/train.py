@@ -8,7 +8,7 @@ import logging
 import torch
 from torch import cuda
 from torch.autograd import Variable
-from model import EncoderRNN, Attn, LuongAttnDecoderRNN
+from model import NMT, EncoderRNN, Attn, LuongAttnDecoderRNN
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
@@ -58,25 +58,19 @@ def main(options):
   word_emb_size = 300
   hidden_size = 1024
 
-
-  # Initialize models
-  encoder = EncoderRNN(trg_vocab_size, word_emb_size, hidden_size) 
-  decoder = LuongAttnDecoderRNN('general', trg_vocab_size, word_emb_size,hidden_size, trg_vocab_size)
+  nmt = NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
+            src_vocab, trg_vocab, attn_model = "general", use_cuda = True)
 
   if use_cuda > 0:
-    encoder.cuda()
-    decoder.cuda()
+    nmt.cuda()
   else:
-    encoder.cpu()
-    decoder.cpu()
+    nmt.cpu()
 
   criterion = torch.nn.NLLLoss()
 
   # Configure optimization
-  encoder_optimizer = eval("torch.optim." + options.optimizer)(encoder.parameters(), options.learning_rate)
-  decoder_optimizer = eval("torch.optim." + options.optimizer)(decoder.parameters(), options.learning_rate)
+  optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
   
-
   # main training loop
   last_dev_avg_loss = float("inf")
   for epoch_i in range(options.epochs):
@@ -93,28 +87,7 @@ def main(options):
         train_src_mask = train_src_mask.cuda()
         train_trg_mask = train_trg_mask.cuda()
 
-      # Encoding
-      encoder_outputs, (e_h,e_c) = encoder(train_src_batch)
-
-      # Preparing for decoding
-      trg_seq_len = train_trg_batch.size(0)
-      batch_size = train_trg_batch.size(1)
-      sys_out_batch = Variable(torch.zeros(trg_seq_len, batch_size, trg_vocab_size)) # (trg_seq_len, batch_size, trg_vocab_size)
-      decoder_input = Variable(torch.LongTensor(trg_vocab.stoi['<s>'] * batch_size))
-      d_h = Variable(e_h.data)
-      d_c = Variable(e_c.data)
-      if use_cuda > 0:
-        decoder_input = decoder_input.cuda()
-        d_h = d_h.cuda()
-        d_c = d_c.cuda()
-        sys_out_batch = sys_out_batch.cuda()
-
-      # Decoding
-      for i in range(trg_seq_len):
-        decoder_output, (d_h, d_c) = decoder(decoder_input, (d_h, d_c), encoder_outputs)
-        sys_out_batch[i] = decoder_output
-        decoder_input = train_trg_batch[i]
-
+      sys_out_batch = nmt(train_src_batch, train_trg_batch, True)
 
       train_trg_mask = train_trg_mask.view(-1)
       train_trg_batch = train_trg_batch.view(-1)
@@ -125,13 +98,13 @@ def main(options):
       loss = criterion(sys_out_batch, train_trg_batch)
       logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
       
-      encoder_optimizer.zero_grad()
-      decoder_optimizer.zero_grad()
+      optimizer.zero_grad()
       loss.backward()
       # # gradient clipping
       # torch.nn.utils.clip_grad_norm(nmt.parameters(), 1.0)
-      encoder_optimizer.step()
-      decoder_optimizer.step()
+      optimizer.step()
+
+      if i == 5:break
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
@@ -146,30 +119,8 @@ def main(options):
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
 
-      # Encoding
-      encoder_outputs, (e_h,e_c) = encoder(dev_src_batch)
+      sys_out_batch = nmt(dev_src_batch, dev_trg_batch, False)
 
-      # Preparing for decoding
-      trg_seq_len = dev_src_batch.size(0)
-      batch_size = dev_src_batch.size(1)
-      sys_out_batch = Variable(torch.zeros(trg_seq_len, batch_size, trg_vocab_size)) # (trg_seq_len, batch_size, trg_vocab_size)
-      decoder_input = Variable(torch.LongTensor(trg_vocab.stoi['<s>'] * batch_size))
-      d_h = Variable(e_h.data)
-      d_c = Variable(e_c.data)
-      if use_cuda > 0:
-        decoder_input = decoder_input.cuda()
-        d_h = d_h.cuda()
-        d_c = d_c.cuda()
-        sys_out_batch = sys_out_batch.cuda()
-
-      # Decoding
-      for i in range(trg_seq_len):
-        decoder_output, (d_h, d_c) = decoder(decoder_input, (d_h, d_c), encoder_outputs)
-        sys_out_batch[i] = decoder_output
-        top_val, top_inx = decoder_output.topk(1)
-        decoder_input = top_inx
-
-      sys_out_batch = nmt(dev_src_batch, dev_trg_batch, is_train = False)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
       dev_trg_mask = dev_trg_mask.view(-1)
       dev_trg_batch = dev_trg_batch.view(-1)
       dev_trg_batch = dev_trg_batch.masked_select(dev_trg_mask)
