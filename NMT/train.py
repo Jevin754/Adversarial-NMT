@@ -29,8 +29,8 @@ parser.add_argument("--epochs", default=20, type=int,
                     help="Epochs through the data. (default=20)")
 parser.add_argument("--optimizer", default="SGD", choices=["SGD", "Adadelta", "Adam"],
                     help="Optimizer of choice for training. (default=SGD)")
-parser.add_argument("--learning_rate", "-lr", default=0.1, type=float,
-                    help="Learning rate of the optimization. (default=0.1)")
+parser.add_argument("--learning_rate", "-lr", default=1.0, type=float,
+                    help="Learning rate of the optimization. (default=1.0)")
 parser.add_argument("--momentum", default=0.9, type=float,
                     help="Momentum when performing SGD. (default=0.9)")
 parser.add_argument("--estop", default=1e-2, type=float,
@@ -56,7 +56,7 @@ def main(options):
   trg_vocab_size = len(trg_vocab)
   src_vocab_size = len(src_vocab)
   word_emb_size = 300
-  hidden_size = 1024
+  hidden_size = 512
 
   nmt = NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
             src_vocab, trg_vocab, attn_model = "general", use_cuda = True)
@@ -69,13 +69,18 @@ def main(options):
   criterion = torch.nn.NLLLoss()
 
   # Configure optimization
-  optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
+  lr = options.learning_rate
+  optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), lr)
 
   
   # main training loop
   last_dev_avg_loss = float("inf")
   for epoch_i in range(options.epochs):
     logging.info("At {0}-th epoch.".format(epoch_i))
+
+    # Set training mode
+    nmt.train()
+
     # srange generates a lazy sequence of shuffled range
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
       train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
@@ -105,8 +110,13 @@ def main(options):
       torch.nn.utils.clip_grad_norm(nmt.parameters(), 5.0)
       optimizer.step()
 
+
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
+
+    # Set validation mode
+    nmt.eval()
+
     for batch_i in range(len(batched_dev_src)):
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
       dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)
@@ -137,6 +147,11 @@ def main(options):
     #   break
     torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
+
+    if dev_avg_loss >= last_dev_avg_loss:
+      # learning rate decay
+      lr = lr * 0.5
+      optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), lr)
 
 
 if __name__ == "__main__":

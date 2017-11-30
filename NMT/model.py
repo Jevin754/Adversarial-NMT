@@ -46,8 +46,8 @@ class NMT(nn.Module):
         sys_out_batch = Variable(torch.zeros(trg_seq_len, batch_size, self.trg_vocab_size)) # (trg_seq_len, batch_size, trg_vocab_size)
         decoder_input = Variable(torch.LongTensor([self.trg_vocab.stoi['<s>']] * batch_size))
 
-        d_h = e_h.detach()
-        d_c = e_c.detach()
+        d_h = e_h
+        d_c = e_c
 
         if self.use_cuda > 0:
             decoder_input = decoder_input.cuda()
@@ -61,6 +61,8 @@ class NMT(nn.Module):
 
         # Decoding
         for d_idx in range(trg_seq_len):
+            d_h = d_h.detach()  # detach hidden variable
+            d_c = d_c.detach()  #detach cell state
             decoder_output, (d_h, d_c), context = self.decoder(decoder_input, (d_h, d_c), encoder_outputs, init_context if context is None else context)
             sys_out_batch[d_idx] = decoder_output.squeeze(1)
             context = context.view(batch_size, hidden_size)
@@ -75,7 +77,7 @@ class NMT(nn.Module):
 
 # Encoder Module
 class EncoderRNN(nn.Module):
-    def __init__(self, input_vocab_size, embed_size, hidden_size, num_directions = 2, n_layers=1):
+    def __init__(self, input_vocab_size, embed_size, hidden_size, dropout=0.3, num_directions=2, n_layers=1):
         super(EncoderRNN, self).__init__()
         
         self.input_vocab_size = input_vocab_size
@@ -84,7 +86,7 @@ class EncoderRNN(nn.Module):
         self.n_layers = n_layers
         
         self.embedding = nn.Embedding(input_vocab_size, embed_size)
-        self.lstm = nn.LSTM(embed_size, self.hidden_size, n_layers, bidirectional=True)
+        self.lstm = nn.LSTM(embed_size, self.hidden_size, n_layers, dropout=dropout, bidirectional=True)
         
     def forward(self, input_seqs_batch):
 
@@ -141,7 +143,7 @@ class Attn(nn.Module):
 
 # Luong Attention Decoder Module
 class LuongAttnDecoderRNN(nn.Module):
-    def __init__(self, attn_model, input_vocab_size, embed_size, hidden_size, output_size, n_layers=1):
+    def __init__(self, attn_model, input_vocab_size, embed_size, hidden_size, output_size, dropout=0.3, n_layers=1):
         super(LuongAttnDecoderRNN, self).__init__()
 
         # Keep for reference
@@ -150,6 +152,7 @@ class LuongAttnDecoderRNN(nn.Module):
         self.hidden_size = hidden_size
         self.embed_size = embed_size
         self.n_layers = n_layers
+        self.dropout = nn.Dropout(dropout)
 
         # Define layers
         self.embedding = nn.Embedding(input_vocab_size, embed_size)
@@ -185,8 +188,10 @@ class LuongAttnDecoderRNN(nn.Module):
         concat_c = torch.cat((decoder_hidden, context), 2)
         concat_output = F.tanh(self.concat(concat_c))
 
+        decoder_out = self.dropout(concat_output)
+
         # Finally predict next token (Luong eq. 6)
-        output = nn.functional.log_softmax(self.out(concat_output))
+        output = nn.functional.log_softmax(self.out(decoder_out))
 
         # Return final output, hidden state
         return output, (d_h, d_c), context
