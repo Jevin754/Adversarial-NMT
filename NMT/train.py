@@ -56,7 +56,7 @@ def main(options):
   trg_vocab_size = len(trg_vocab)
   src_vocab_size = len(src_vocab)
   word_emb_size = 300
-  hidden_size = 512
+  hidden_size = 1024
 
   nmt = NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
             src_vocab, trg_vocab, attn_model = "general", use_cuda = True)
