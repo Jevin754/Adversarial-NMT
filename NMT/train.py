@@ -148,10 +148,6 @@ def main(options):
     torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
 
-    if dev_avg_loss >= last_dev_avg_loss:
-      # learning rate decay
-      lr = lr * 0.5
-      optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), lr)
 
 
 if __name__ == "__main__":
