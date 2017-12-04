@@ -65,13 +65,10 @@ def main(options):
             src_vocab, trg_vocab, attn_model = "general", use_cuda = True)
 
   if use_cuda > 0:
+    nmt.cuda()
     if options.distributed:
-      nmt = torch.nn.parallel.DistributedDataParallel(NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
-            src_vocab, trg_vocab, attn_model = "general", use_cuda = True))
-      nmt.cuda()
+      nmt = torch.nn.parallel.DistributedDataParallel(nmt, devices=[0,1])
   else:
-    nmt = NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
-            src_vocab, trg_vocab, attn_model = "general", use_cuda = False)
     nmt.cpu()
 
   criterion = torch.nn.NLLLoss()
