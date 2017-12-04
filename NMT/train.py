@@ -18,7 +18,6 @@ parser = argparse.ArgumentParser(description="Starter code for JHU CS468 Machine
 
 parser.add_argument("--distributed", default=False,
                     help="Whether use multiples GPUs.")
-parser.add_argument("--src_lang", default="de",
 parser.add_argument("--data_file", required=True,
                     help="File prefix for training set.")
 parser.add_argument("--src_lang", default="de",
