@@ -123,7 +123,8 @@ class Attn(nn.Module):
         batch, targetL, sourceL = align.size()
 
         # Normalize energies to weights in range 0 to 1
-        align_vectors = F.softmax(align.view(batch * targetL, sourceL), dim=1)
+        # align_vectors = F.softmax(align.view(batch * targetL, sourceL), dim=1)
+        align_vectors = F.softmax(align.view(batch * targetL, sourceL))
 
         align_vectors = align_vectors.view(batch, targetL, sourceL)
 
@@ -197,7 +198,8 @@ class LuongAttnDecoderRNN(nn.Module):
         decoder_out = self.dropout(attn_vector)
 
         # Finally predict next token (Luong eq. 6)
-        output = nn.functional.log_softmax(self.out(decoder_out),dim=1)
+        # output = nn.functional.log_softmax(self.out(decoder_out),dim=1)
+        output = nn.functional.log_softmax(self.out(decoder_out))
 
         # Return final output, hidden state
         return output, (d_h, d_c), attn_vector
