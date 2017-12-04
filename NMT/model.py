@@ -43,11 +43,12 @@ class NMT(nn.Module):
         # Preparing for decoding
         trg_seq_len = trg_batch.size(0)
         batch_size = trg_batch.size(1)
-        sys_out_batch = Variable(torch.zeros(trg_seq_len, batch_size, self.trg_vocab_size)) # (trg_seq_len, batch_size, trg_vocab_size)
+        sys_out_batch = Variable(torch.FloatTensor(trg_seq_len, batch_size, self.trg_vocab_size).fill_(self.trg_vocab.stoi['<blank>'])) # (trg_seq_len, batch_size, trg_vocab_size)
         decoder_input = Variable(torch.LongTensor([self.trg_vocab.stoi['<s>']] * batch_size))
 
-        d_h = e_h
-        d_c = e_c
+        # Use last (forward) hidden state from encoder (Luong's paper)
+        d_h = e_h[ : 1].squeeze(0)
+        d_c = e_c[ : 1].squeeze(0)
 
         if self.use_cuda > 0:
             decoder_input = decoder_input.cuda()
@@ -55,17 +56,17 @@ class NMT(nn.Module):
 
         hidden_size = d_h.size(1)
         if self.use_cuda:
-            init_context = Variable(torch.zeros(batch_size, hidden_size), requires_grad=False).cuda()
+            attn_vector = Variable(torch.zeros(batch_size, hidden_size), requires_grad=False).cuda()
         else:
-            init_context = Variable(torch.zeros(batch_size, hidden_size), requires_grad=False)
+            attn_vector = Variable(torch.zeros(batch_size, hidden_size), requires_grad=False)
 
         # Decoding
         for d_idx in range(trg_seq_len):
             d_h = d_h.detach()  # detach hidden variable
             d_c = d_c.detach()  #detach cell state
-            decoder_output, (d_h, d_c), context = self.decoder(decoder_input, (d_h, d_c), encoder_outputs, init_context if context is None else context)
+            decoder_output, (d_h, d_c), attn_vector = self.decoder(decoder_input, (d_h, d_c), encoder_outputs, attn_vector)
             sys_out_batch[d_idx] = decoder_output
-            context = context.view(batch_size, hidden_size)
+            attn_vector = attn_vector.view(batch_size, hidden_size)
             if is_train:
                 decoder_input = trg_batch[d_idx]
             else:
@@ -77,12 +78,12 @@ class NMT(nn.Module):
 
 # Encoder Module
 class EncoderRNN(nn.Module):
-    def __init__(self, input_vocab_size, embed_size, hidden_size, dropout=0.3, num_directions=2, n_layers=1):
+    def __init__(self, input_vocab_size, embed_size, hidden_size, dropout=0.2, n_layers=1):
         super(EncoderRNN, self).__init__()
-        
+
         self.input_vocab_size = input_vocab_size
         self.embed_size = embed_size
-        self.hidden_size = hidden_size // num_directions
+        self.hidden_size = hidden_size
         self.n_layers = n_layers
         
         self.embedding = nn.Embedding(input_vocab_size, embed_size)
@@ -96,10 +97,10 @@ class EncoderRNN(nn.Module):
 
         e_outputs, (e_h, e_c) = self.lstm(embedded)
 
-        # e_outputs = e_outputs[:, :, :self.hidden_size] + e_outputs[:, :, self.hidden_size:]  # Sum bidirectional outputs
-        e_h_ = e_h.transpose(0,1).contiguous().view(batch_size, -1)
-        e_c_ = e_c.transpose(0,1).contiguous().view(batch_size, -1)
-        return e_outputs, (e_h_, e_c_)
+        # Sum bidirectional outputs
+        e_outputs = e_outputs[:, :, :self.hidden_size] + e_outputs[:, :, self.hidden_size:]
+
+        return e_outputs, (e_h, e_c)
 
 
 # Attention Module
@@ -122,7 +123,7 @@ class Attn(nn.Module):
         batch, targetL, sourceL = align.size()
 
         # Normalize energies to weights in range 0 to 1
-        align_vectors = F.softmax(align.view(batch * targetL, sourceL))
+        align_vectors = F.softmax(align.view(batch * targetL, sourceL), dim=1)
 
         align_vectors = align_vectors.view(batch, targetL, sourceL)
 
@@ -147,7 +148,7 @@ class Attn(nn.Module):
 
 # Luong Attention Decoder Module
 class LuongAttnDecoderRNN(nn.Module):
-    def __init__(self, attn_model, input_vocab_size, embed_size, hidden_size, output_size, dropout=0.3, n_layers=1):
+    def __init__(self, attn_model, input_vocab_size, embed_size, hidden_size, output_size, dropout=0.2, n_layers=1):
         super(LuongAttnDecoderRNN, self).__init__()
 
         # Keep for reference
@@ -168,37 +169,35 @@ class LuongAttnDecoderRNN(nn.Module):
         if attn_model != None:
             self.attn = Attn(attn_model, hidden_size)
 
-    def forward(self, input_seq, last_hidden, encoder_outputs, context):
+    def forward(self, input_seq, last_hidden, encoder_outputs, attn_vector):
         # Note: we run this one step at a time
 
         # Get the embedding of the current input word (last output word)
         batch_size = input_seq.size(0)
         embedded = self.embedding(input_seq)
         #embedded = embedded.view(1, batch_size, self.embed_size) # S=1 x B x N
-        emb_t = torch.cat([embedded, context], 1)
+        emb_t = torch.cat([embedded, attn_vector], 1)
         # Get current hidden state from input word and last hidden state
         d_h, d_c = self.lstm(emb_t, last_hidden) # rnn_output: 1*batch*hidden
 
         # Calculate attention from current RNN state and all encoder outputs;
         # apply to encoder outputs to get weighted average
         decoder_hidden = d_h.view(1, batch_size, -1)
-        attn_weights = self.attn(decoder_hidden, encoder_outputs) # batch * hidden
+        alignment_vector = self.attn(decoder_hidden, encoder_outputs) # batch * hidden
         
         encoder_outputs = encoder_outputs.transpose(0, 1)
-        context = torch.bmm(attn_weights, encoder_outputs)
-
+        context = torch.bmm(alignment_vector, encoder_outputs)
         c_t = context.squeeze(1)
-        h_t = d_h
 
         # Attentional vector using the RNN hidden state and context vector
         # concatenated together (Luong eq. 5)
-        concat_c = torch.cat((c_t, h_t), 1)
-        concat_output = F.tanh(self.concat(concat_c))
+        concat_c = torch.cat((c_t, d_h), 1)
+        attn_vector = F.tanh(self.concat(concat_c))
 
-        decoder_out = self.dropout(concat_output)
+        decoder_out = self.dropout(attn_vector)
 
         # Finally predict next token (Luong eq. 6)
-        output = nn.functional.log_softmax(self.out(decoder_out))
+        output = nn.functional.log_softmax(self.out(decoder_out),dim=1)
 
         # Return final output, hidden state
-        return output, (d_h, d_c), context
+        return output, (d_h, d_c), attn_vector

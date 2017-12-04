@@ -15,6 +15,10 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description="Starter code for JHU CS468 Machine Translation Final Project.")
+
+parser.add_argument("--distributed", default=False,
+                    help="Whether use multiples GPUs.")
+parser.add_argument("--src_lang", default="de",
 parser.add_argument("--data_file", required=True,
                     help="File prefix for training set.")
 parser.add_argument("--src_lang", default="de",
@@ -62,7 +66,9 @@ def main(options):
             src_vocab, trg_vocab, attn_model = "general", use_cuda = True)
 
   if use_cuda > 0:
-    nmt.cuda()
+    if options.distributed:
+      nmt.cuda()
+      nmt = torch.nn.parallel.DistributedDataParallel(nmt)
   else:
     nmt.cpu()
 
@@ -95,6 +101,8 @@ def main(options):
 
       sys_out_batch = nmt(train_src_batch, train_trg_batch, True)
 
+      del train_src_batch
+
       train_trg_mask = train_trg_mask.view(-1)
       train_trg_batch = train_trg_batch.view(-1)
       train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
@@ -109,7 +117,6 @@ def main(options):
       # # gradient clipping
       torch.nn.utils.clip_grad_norm(nmt.parameters(), 5.0)
       optimizer.step()
-
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
@@ -148,6 +155,9 @@ def main(options):
     torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
 
+    if epoch_i >= 4:
+      lr = lr * 0.5
+      optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), lr)
 
 
 if __name__ == "__main__":
