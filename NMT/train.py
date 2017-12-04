@@ -46,7 +46,6 @@ def main(options):
 
   use_cuda = (len(options.gpuid) >= 1)
   if options.gpuid:
-    print options.gpuid[0],options.gpuid[1]
     cuda.set_device(options.gpuid[0])
 
   src_train, src_dev, src_test, src_vocab = torch.load(open(options.data_file + "." + options.src_lang, 'rb'))
