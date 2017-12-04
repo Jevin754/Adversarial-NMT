@@ -46,6 +46,7 @@ def main(options):
 
   use_cuda = (len(options.gpuid) >= 1)
   if options.gpuid:
+    print options.gpuid[0]
     cuda.set_device(options.gpuid[0])
 
   src_train, src_dev, src_test, src_vocab = torch.load(open(options.data_file + "." + options.src_lang, 'rb'))
@@ -67,7 +68,7 @@ def main(options):
   if use_cuda > 0:
     nmt.cuda()
     if options.distributed:
-      nmt = torch.nn.parallel.DistributedDataParallel(nmt, devices=[0,1])
+      nmt = torch.nn.DataParallel(nmt)
   else:
     nmt.cpu()
 
