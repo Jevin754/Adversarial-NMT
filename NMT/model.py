@@ -36,9 +36,13 @@ class NMT(nn.Module):
         for weight in self.parameters():
           weight.data.uniform_(-0.1, 0.1)
 
-    def forward(self, src_batch, trg_batch, is_train, context=None):
+    def forward(self, src_batch, trg_batch, is_train):
         # Encoding
         encoder_outputs, (e_h,e_c) = self.encoder(src_batch)
+
+        e_h_ = torch.cat([e_h[0:e_h.size(0):2], e_h[1:e_h.size(0):2]], 2)
+        e_c_ = torch.cat([e_c[0:e_c.size(0):2], e_c[1:e_c.size(0):2]], 2)
+
 
         # Preparing for decoding
         trg_seq_len = trg_batch.size(0)
@@ -46,15 +50,14 @@ class NMT(nn.Module):
         sys_out_batch = Variable(torch.FloatTensor(trg_seq_len, batch_size, self.trg_vocab_size).fill_(self.trg_vocab.stoi['<blank>'])) # (trg_seq_len, batch_size, trg_vocab_size)
         decoder_input = Variable(torch.LongTensor([self.trg_vocab.stoi['<s>']] * batch_size))
 
-        # Use last (forward) hidden state from encoder (Luong's paper)
-        d_h = e_h[ : 1].squeeze(0)
-        d_c = e_c[ : 1].squeeze(0)
-
+        # # Use last (forward) hidden state from encoder (Luong's paper)
+        d_h = e_h_.squeeze(0)
+        d_c = e_c_.squeeze(0)
         if self.use_cuda > 0:
             decoder_input = decoder_input.cuda()
             sys_out_batch = sys_out_batch.cuda()
 
-        hidden_size = d_h.size(1)
+        hidden_size = e_h_.size(2)
         if self.use_cuda:
             attn_vector = Variable(torch.zeros(batch_size, hidden_size), requires_grad=False).cuda()
         else:
@@ -78,12 +81,12 @@ class NMT(nn.Module):
 
 # Encoder Module
 class EncoderRNN(nn.Module):
-    def __init__(self, input_vocab_size, embed_size, hidden_size, dropout=0.2, n_layers=1):
+    def __init__(self, input_vocab_size, embed_size, hidden_size, num_direction=2, dropout=0.2, n_layers=1):
         super(EncoderRNN, self).__init__()
 
         self.input_vocab_size = input_vocab_size
         self.embed_size = embed_size
-        self.hidden_size = hidden_size
+        self.hidden_size = hidden_size // num_direction
         self.n_layers = n_layers
         
         self.embedding = nn.Embedding(input_vocab_size, embed_size)
@@ -98,7 +101,7 @@ class EncoderRNN(nn.Module):
         e_outputs, (e_h, e_c) = self.lstm(embedded)
 
         # Sum bidirectional outputs
-        e_outputs = e_outputs[:, :, :self.hidden_size] + e_outputs[:, :, self.hidden_size:]
+        # e_outputs = e_outputs[:, :, :self.hidden_size] + e_outputs[:, :, self.hidden_size:]
 
         return e_outputs, (e_h, e_c)
 
@@ -186,8 +189,8 @@ class LuongAttnDecoderRNN(nn.Module):
         decoder_hidden = d_h.view(1, batch_size, -1)
         alignment_vector = self.attn(decoder_hidden, encoder_outputs) # batch * hidden
         
-        encoder_outputs = encoder_outputs.transpose(0, 1)
-        context = torch.bmm(alignment_vector, encoder_outputs)
+        # encoder_outputs = encoder_outputs.transpose(0, 1)
+        context = torch.bmm(alignment_vector, encoder_outputs.permute(1,0,2))
         c_t = context.squeeze(1)
 
         # Attentional vector using the RNN hidden state and context vector
