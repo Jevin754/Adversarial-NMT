@@ -60,7 +60,7 @@ class Discriminator(nn.Module):
         trg_padded = np.transpose(np.expand_dims(trg_padded,2),(1,3,0,2)) 
         trg_padded = np.concatenate([trg_padded]*32, axis=3)
 
-        input = Variable(torch.from_numpy(np.concatenate([src_padded,trg_padded],axis=1)))
+        input = Variable(torch.from_numpy(np.concatenate([src_padded,trg_padded],axis=1)).float())
 
         if self.use_cuda:
             input = input.cuda()
