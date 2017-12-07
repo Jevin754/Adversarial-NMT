@@ -117,8 +117,8 @@ def main(options):
   optimizer_d = eval("torch.optim." + options.optimizer)(discriminator.parameters(), options.learning_rate)
   
   # main training loop
-  f = open("train_loss", "a")
-  f = open("dev_loss", "a")
+  f1 = open("train_loss", "a")
+  f2 = open("dev_loss", "a")
   last_dev_avg_loss = float("inf")
   for epoch_i in range(options.epochs):
     logging.info("At {0}-th epoch.".format(epoch_i))
@@ -149,7 +149,7 @@ def main(options):
       loss_d_fake.backward(retain_graph=True)
       loss_d = loss_d_fake.data[0]+loss_d_real.data[0]
       logging.debug("D loss at batch {0}: {1}".format(i, loss_d))
-      f.write("D train loss at batch {0}: {1}\n".format(i, loss_d))
+      f1.write("D train loss at batch {0}: {1}\n".format(i, loss_d))
       optimizer_d.step()
 
       sys_out_label = Variable(torch.zeros(options.batch_size))
@@ -173,7 +173,7 @@ def main(options):
         loss_g = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda())
       
       logging.debug("G loss at batch {0}: {1}".format(i, loss_g.data[0]))
-      f.write("G train at batch {0}: {1}\n".format(i, loss_g.data[0]))
+      f1.write("G train at batch {0}: {1}\n".format(i, loss_g.data[0]))
       
 
       optimizer_g.zero_grad()
@@ -232,9 +232,9 @@ def main(options):
       loss_g = criterion(1, fake_dis_label_out)
       loss_d = criterion(1, real_dis_label_out) + criterion(0, fake_dis_label_out)
       logging.debug("G dev loss at batch {0}: {1}".format(batch_i, loss_g.data[0]))
-      f.write("G dev loss at batch {0}: {1}\n".format(batch_i, loss_g.data[0]))
+      f2.write("G dev loss at batch {0}: {1}\n".format(batch_i, loss_g.data[0]))
       logging.debug("D dev loss at batch {0}: {1}".format(batch_i, loss_d.data[0]))
-      f.write("D dev loss at batch {0}: {1}\n".format(batch_i, loss_d.data[0]))
+      f2.write("D dev loss at batch {0}: {1}\n".format(batch_i, loss_d.data[0]))
       dev_loss_g += loss_g
       dev_loss_d += loss_d
     dev_avg_loss_g = dev_loss_g / len(batched_dev_src)
@@ -245,7 +245,8 @@ def main(options):
     #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
     #   break
     #torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss_d.data[0], epoch_i), 'wb'), pickle_module=dill)
-    f.close()
+    f1.close()
+    f2.close()
 
 
 
