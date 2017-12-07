@@ -245,8 +245,8 @@ def main(options):
     #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
     #   break
     #torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss_d.data[0], epoch_i), 'wb'), pickle_module=dill)
-    f1.close()
-    f2.close()
+  f1.close()
+  f2.close()
 
 
 

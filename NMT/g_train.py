@@ -80,6 +80,8 @@ def main(options):
   
   # main training loop
   last_dev_avg_loss = float("inf")
+  f1 = open("generator_train_loss", "a")
+  f2 = open("generator_dev_loss", "a")
   for epoch_i in range(options.epochs):
     logging.info("At {0}-th epoch.".format(epoch_i))
 
@@ -110,6 +112,7 @@ def main(options):
       sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
       loss = criterion(sys_out_batch, train_trg_batch)
       logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+      f1.write("train loss at batch {0}: {1}\n".format(i, loss.data[0]))
       
       optimizer.zero_grad()
       loss.backward()
@@ -144,6 +147,7 @@ def main(options):
       sys_out_batch = sys_out_batch.masked_select(dev_trg_mask).view(-1, trg_vocab_size)
       loss = criterion(sys_out_batch, dev_trg_batch)
       logging.debug("dev loss at batch {0}: {1}".format(batch_i, loss.data[0]))
+      f2.write("dev loss at batch {0}: {1}\n".format(batch_i, loss.data[0]))
       dev_loss += loss
     dev_avg_loss = dev_loss / len(batched_dev_src)
     logging.info("Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss.data[0], epoch_i))
@@ -151,8 +155,10 @@ def main(options):
     # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
     #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
     #   break
-    torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
+    #torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
+  f1.close()
+  f2.close()
 
 
 
