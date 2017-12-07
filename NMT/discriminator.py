@@ -68,7 +68,7 @@ class Discriminator(nn.Module):
         out = self.conv1(input)
         out = self.conv2(out)
         out = out.view(out.size(0), 1280)
-        out = F.ReLU(self.mlp(out))
+        out = F.relu(self.mlp(out))
         out = self.ll(out)
         out = self.softmax(out)
 
