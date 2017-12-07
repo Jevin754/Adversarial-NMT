@@ -159,8 +159,8 @@ def main(options):
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
         loss_g = criterion_g(sys_out_batch, train_trg_batch)
       else:
-        loss_g = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size)).cuda())
-      loss_d = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size)).cuda()) + criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size)).cuda())
+        loss_g = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda())
+      loss_d = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda()) + criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size).long()).cuda())
 
       logging.debug("G loss at batch {0}: {1}".format(i, loss_g.data[0]))
       logging.debug("D loss at batch {0}: {1}".format(i, loss_d.data[0]))
