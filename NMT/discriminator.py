@@ -47,7 +47,7 @@ class Discriminator(nn.Module):
 
     def forward(self, src_batch, trg_batch, is_train=False):
         # src_batch : (src_seq_len, batch_size)
-        src_embedded = self.embedding1(src_batch) #(s,e,b)
+        src_embedded = self.embedding1(src_batch) #(s,b,e)
         trg_embedded = self.embedding2(trg_batch)
 
         src_padded = np.zeros((32,src_batch.size(-1), self.word_emb_size))
@@ -55,12 +55,12 @@ class Discriminator(nn.Module):
         src_padded[:src_embedded.size(0), :src_embedded.size(1), :src_embedded.size(2)] = src_embedded.data
         trg_padded[:trg_embedded.size(0), :trg_embedded.size(1), :trg_embedded.size(2)] = trg_embedded.data
 
-        src_padded = np.transpose(np.expand_dims(src_padded,2),(3,1,2,0)) #(b,c,h,w)
-        src_padded = np.concatenate([src_padded]*3, axis=2)
-        trg_padded = np.transpose(np.expand_dims(trg_padded,2),(3,1,0,2))
-        trg_padded = np.concatenate([trg_padded]*3, axis=2)
+        src_padded = np.transpose(np.expand_dims(src_padded,2),(1,3,2,0)) #(b,c,h,w)
+        src_padded = np.concatenate([src_padded]*32, axis=2)
+        trg_padded = np.transpose(np.expand_dims(trg_padded,2),(1,3,0,2)) 
+        trg_padded = np.concatenate([trg_padded]*32, axis=3)
 
-        input = Variable(torch.from_array(np.concatenate([src_padded,trg_padded],axis=2)))
+        input = Variable(torch.from_array(np.concatenate([src_padded,trg_padded],axis=0)))
 
         if self.use_cuda:
             input = input.cuda()
