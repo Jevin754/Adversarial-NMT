@@ -120,8 +120,10 @@ def main(options):
         train_trg_mask = train_trg_mask.cuda()
 
       sys_out_batch = nmt(train_src_batch, train_trg_batch, True)
+      _,predict_batch = sys_out_batch.topk(1)
+      predict_batch = predict_batch.squeeze(2)
       fake_dis_label_out = discriminator(train_src_batch, train_trg_batch, True)
-      real_dis_label_out = discriminator(train_src_batch, sys_out_batch, True)
+      real_dis_label_out = discriminator(train_src_batch, predict_batch, True)
 
       sys_out_label = Variable(torch.zeros(options.batch_size))
       train_trg_label = Variable(torch.ones(options.batch_size))
@@ -181,8 +183,10 @@ def main(options):
         dev_trg_mask = dev_trg_mask.cuda()
 
       sys_out_batch = nmt(dev_src_batch, dev_trg_batch, False)
+      _,predict_batch = sys_out_batch.topk(1)
+      predict_batch = predict_batch.squeeze(2)
       fake_dis_label_out = discriminator(dev_src_batch, dev_trg_batch, True)
-      real_dis_label_out = discriminator(dev_src_batch, sys_out_batch, True)
+      real_dis_label_out = discriminator(dev_src_batch, predict_batch, True)
 
       sys_out_label = Variable(torch.zeros(options.batch_size))
       dev_trg_label = Variable(torch.ones(options.batch_size))
