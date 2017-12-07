@@ -50,8 +50,8 @@ class Discriminator(nn.Module):
         src_embedded = self.embedding1(src_batch) #(s,e,b)
         trg_embedded = self.embedding2(trg_batch)
 
-        src_padded = np.zeros((32,self.word_emb_size, src_batch.size(-1)))
-        trg_padded = np.zeros((32,self.word_emb_size, src_batch.size(-1)))
+        src_padded = np.zeros((32,src_batch.size(-1), self.word_emb_size))
+        trg_padded = np.zeros((32, src_batch.size(-1), self.word_emb_size))
         src_padded[:src_embedded.size(0), :src_embedded.size(1), :src_embedded.size(2)] = src_embedded.data
         trg_padded[:trg_embedded.size(0), :trg_embedded.size(1), :trg_embedded.size(2)] = trg_embedded.data
 
