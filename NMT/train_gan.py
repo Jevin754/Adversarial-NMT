@@ -145,6 +145,7 @@ def main(options):
       loss_d_real.backward()
       loss_d_fake = criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size).long()).cuda())
       loss_d_fake.backward()
+      logging.debug("D loss at batch {0}: {1}".format(i, loss_d_fake.data[0]+loss_d_real.data[0]))
       optimizer_d.step()
 
       sys_out_label = Variable(torch.zeros(options.batch_size))
@@ -168,7 +169,7 @@ def main(options):
         loss_g = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda())
       
       logging.debug("G loss at batch {0}: {1}".format(i, loss_g.data[0]))
-      logging.debug("D loss at batch {0}: {1}".format(i, loss_d.data[0]))
+      
 
       optimizer_g.zero_grad()
       loss_g.backward()
