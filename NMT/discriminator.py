@@ -42,8 +42,8 @@ class Discriminator(nn.Module):
                          stride = 2))
 
         self.mlp = nn.Linear(1280, 20)
-        self.ll = nn.Linear(20,1)
-        self.softmax = nn.Softmax() 
+        self.ll = nn.Linear(20,2)
+        #self.softmax = nn.Softmax() 
 
     def forward(self, src_batch, trg_batch, is_train=False):
         # src_batch : (src_seq_len, batch_size)
@@ -70,7 +70,7 @@ class Discriminator(nn.Module):
         out = out.view(out.size(0), 1280)
         out = F.relu(self.mlp(out))
         out = self.ll(out)
-        out = self.softmax(out)
+        #out = self.softmax(out)
 
         return out
 
