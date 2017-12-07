@@ -167,8 +167,9 @@ def main(options):
 
       optimizer_g.zero_grad()
       optimizer_d.zero_grad()
-      loss_g.backward(retain_graph=True)
       loss_d.backward()
+      loss_g.backward()
+      
       # # gradient clipping
       torch.nn.utils.clip_grad_norm(nmt.parameters(), 5.0)
       optimizer_g.step()
