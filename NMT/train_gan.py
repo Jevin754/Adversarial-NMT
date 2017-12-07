@@ -45,8 +45,8 @@ parser.add_argument("--gpuid", default=[], nargs='+', type=int,
 def main(options):
 
   use_cuda = (len(options.gpuid) >= 1)
-  if options.gpuid:
-    cuda.set_device(options.gpuid[0])
+  # if options.gpuid:
+  #   cuda.set_device(options.gpuid[0])
 
   src_train, src_dev, src_test, src_vocab = torch.load(open(options.data_file + "." + options.src_lang, 'rb'))
   trg_train, trg_dev, trg_test, trg_vocab = torch.load(open(options.data_file + "." + options.trg_lang, 'rb'))
@@ -103,8 +103,8 @@ def main(options):
             src_vocab, trg_vocab, use_cuda = True)
 
   if use_cuda > 0:
-    nmt.cuda()
-    discriminator.cuda()
+    nmt = nn.DataParallel(nmt).cuda()
+    discriminator = nn.DataParallel(discriminator).cuda()
   else:
     nmt.cpu()
     discriminator.cpu()
