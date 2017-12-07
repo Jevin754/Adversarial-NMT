@@ -59,20 +59,36 @@ def main(options):
   print "preprocessing batched data..."
   processed_src = list()
   processed_trg = list()
+  processed_src_mask = list()
+  processed_trg_mask = list()
   for batch_i in range(len(batched_train_src)):
     if batched_train_src[batch_i].size(0) <= 32 and batched_train_trg[batch_i].size(0) <= 32:
       processed_src.append(batched_train_src[batch_i])
       processed_trg.append(batched_train_trg[batch_i])
+      processed_src_mask.append(batched_train_src_mask[batch_i])
+      processed_trg_mask.append(batched_train_trg_mask[batch_i])
+
+
   batched_train_src = processed_src
   batched_train_trg = processed_trg
+  batched_train_src_mask = processed_src_mask
+  batched_train_trg_mask = processed_trg_mask
+
   processed_src = list()
   processed_trg = list()
+  processed_src_mask = list()
+  processed_trg_mask = list()
   for batch_i in range(len(batched_dev_src)):
     if batched_dev_src[batch_i].size(0) <= 32 and batched_dev_trg[batch_i].size(0) <= 32:
       processed_src.append(batched_dev_src[batch_i])
       processed_trg.append(batched_dev_trg[batch_i])
+      processed_src_mask.append(batched_dev_src_mask[batch_i])
+      processed_trg_mask.append(batched_dev_src_mask[batch_i])
+
   batched_dev_src = processed_src
   batched_dev_trg = processed_trg
+  batched_dev_src_mask = processed_src_mask
+  batched_dev_trg_mask = processed_trg_mask
 
   del processed_src, processed_trg
 
