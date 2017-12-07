@@ -103,8 +103,8 @@ def main(options):
             src_vocab, trg_vocab, use_cuda = True)
 
   if use_cuda > 0:
-    nmt = nn.DataParallel(nmt).cuda()
-    discriminator = nn.DataParallel(discriminator).cuda()
+    nmt = torch.nn.DataParallel(nmt).cuda()
+    discriminator = torch.nn.DataParallel(discriminator).cuda()
   else:
     nmt.cpu()
     discriminator.cpu()
