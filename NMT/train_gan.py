@@ -56,6 +56,26 @@ def main(options):
   batched_dev_src, batched_dev_src_mask, sort_index = utils.tensor.advanced_batchize(src_dev, options.batch_size, src_vocab.stoi["<blank>"])
   batched_dev_trg, batched_dev_trg_mask = utils.tensor.advanced_batchize_no_sort(trg_dev, options.batch_size, trg_vocab.stoi["<blank>"], sort_index)
 
+  print "preprocessing batched data..."
+  processed_src = list()
+  processed_trg = list()
+  for batch_i in range(len(batched_train_src)):
+    if batched_train_src[batch_i].size(0) <= 32 and batched_train_trg[batch_i].size(0) <= 32:
+      processed_src.append(batched_train_src[batch_i])
+      processed_trg.append(batched_train_trg[batch_i])
+  batched_train_src = processed_src
+  batched_train_trg = processed_trg
+  processed_src = list()
+  processed_trg = list()
+  for batch_i in range(len(batched_dev_src)):
+    if batched_dev_src[batch_i].size(0) <= 32 and batched_dev_trg[batch_i].size(0) <= 32:
+      processed_src.append(batched_dev_src[batch_i])
+      processed_trg.append(batched_dev_trg[batch_i])
+  batched_dev_src = processed_src
+  batched_dev_trg = processed_trg
+
+  del processed_src, processed_trg
+
   trg_vocab_size = len(trg_vocab)
   src_vocab_size = len(src_vocab)
   word_emb_size = 300
@@ -68,8 +88,10 @@ def main(options):
 
   if use_cuda > 0:
     nmt.cuda()
+    discriminator.cuda()
   else:
     nmt.cpu()
+    discriminator.cpu()
 
   criterion_g = torch.nn.NLLLoss()
   criterion = torch.nn.CrossEntropyLoss()
@@ -83,6 +105,9 @@ def main(options):
   for epoch_i in range(options.epochs):
     logging.info("At {0}-th epoch.".format(epoch_i))
     # srange generates a lazy sequence of shuffled range
+
+    train_loss_g = 0.0
+    train_loss_d = 0.0
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
       train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
       train_trg_batch = Variable(batched_train_trg[batch_i])  # of size (src_seq_len, batch_size)
@@ -141,7 +166,9 @@ def main(options):
 
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
-    dev_loss = 0.0
+    dev_loss_g = 0.0
+    dev_loss_d = 0.0
+
     for batch_i in range(len(batched_dev_src)):
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
       dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)
@@ -186,7 +213,7 @@ def main(options):
     #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
     #   break
     torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss_d.data[0], epoch_i), 'wb'), pickle_module=dill)
-    last_dev_avg_loss = dev_avg_loss
+
 
 
 if __name__ == "__main__":

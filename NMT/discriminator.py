@@ -23,10 +23,10 @@ class Discriminator(nn.Module):
             nn.Conv2d(in_channels = word_emb_size*2,
                       out_channels = 64,
                       kernel_size = 3,
-                      sride = 1,
+                      stride = 1,
                       padding = 1),
             nn.BatchNorm2d(64),
-            nn.Relu(),
+            nn.ReLU(),
             nn.MaxPool2d(kernel_size = 2,
                          stride = 2))
 
@@ -37,7 +37,7 @@ class Discriminator(nn.Module):
                       stride = 1,
                       padding = 1),
             nn.BatchNorm2d(20),
-            nn.Relu(),
+            nn.ReLU(),
             nn.MaxPool2d(kernel_size = 2,
                          stride = 2))
 
@@ -45,7 +45,7 @@ class Discriminator(nn.Module):
         self.ll = nn.Linear(20,1)
         self.softmax = nn.Softmax() 
 
-    def forward(self, src_batch, trg_batch):
+    def forward(self, src_batch, trg_batch, is_train=False):
         # src_batch : (src_seq_len, batch_size)
         src_embedded = self.embedding1(src_batch) #(s,e,b)
         trg_embedded = self.embedding2(trg_batch)
@@ -68,7 +68,7 @@ class Discriminator(nn.Module):
         out = self.conv1(input)
         out = self.conv2(out)
         out = torch.view(out.size(0), 1280)
-        out = F.relu(self.mlp(out))
+        out = F.ReLU(self.mlp(out))
         out = self.ll(out)
         out = self.softmax(out)
 
