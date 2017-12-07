@@ -11,7 +11,7 @@ from torch.autograd import Variable
 from model import NMT, EncoderRNN, Attn, LuongAttnDecoderRNN
 from discriminator import Discriminator
 
- random 
+import random 
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
@@ -121,13 +121,7 @@ def main(options):
 
       logging.debug("G loss at batch {0}: {1}".format(i, loss_g.data[0]))
       logging.debug("D loss at batch {0}: {1}".format(i, loss_d.data[0]))
-      train_loss_g += loss_g
-      train_loss_d += loss_d
-    train_avg_loss_g = train_loss_g / len(train_src_batch)
-    train_avg_loss_d = train_loss_d / len(train_src_batch)
-    logging.info("G TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_g.data[0], epoch_i))
-    logging.info("D TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_d.data[0], epoch_i))
-      
+
       optimizer_g.zero_grad()
       optimizer_d.zero_grad()
       loss_g.backward()
@@ -136,6 +130,15 @@ def main(options):
       torch.nn.utils.clip_grad_norm(nmt.parameters(), 5.0)
       optimizer_g.step()
       optimizer_d.step()
+
+      train_loss_g += loss_g
+      train_loss_d += loss_d
+    train_avg_loss_g = train_loss_g / len(train_src_batch)
+    train_avg_loss_d = train_loss_d / len(train_src_batch)
+    logging.info("G TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_g.data[0], epoch_i))
+    logging.info("D TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_d.data[0], epoch_i))
+      
+
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
