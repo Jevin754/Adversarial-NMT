@@ -94,7 +94,7 @@ def main(options):
 
   trg_vocab_size = len(trg_vocab)
   src_vocab_size = len(src_vocab)
-  word_emb_size = 300
+  word_emb_size = 50
   hidden_size = 1024
 
   nmt = NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
@@ -140,6 +140,12 @@ def main(options):
       predict_batch = predict_batch.squeeze(2)
       fake_dis_label_out = discriminator(train_src_batch, train_trg_batch, True)
       real_dis_label_out = discriminator(train_src_batch, predict_batch, True)
+      optimizer_d.zero_grad()
+      loss_d_real = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda())
+      loss_d_real.backward()
+      loss_d_fake = criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size).long()).cuda())
+      loss_d_fake.backward()
+      optimizer_d.step()
 
       sys_out_label = Variable(torch.zeros(options.batch_size))
       train_trg_label = Variable(torch.ones(options.batch_size))
@@ -160,20 +166,17 @@ def main(options):
         loss_g = criterion_g(sys_out_batch, train_trg_batch)
       else:
         loss_g = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda())
-      loss_d = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda()) + criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size).long()).cuda())
-
+      
       logging.debug("G loss at batch {0}: {1}".format(i, loss_g.data[0]))
       logging.debug("D loss at batch {0}: {1}".format(i, loss_d.data[0]))
 
       optimizer_g.zero_grad()
-      optimizer_d.zero_grad()
-      loss_d.backward()
       loss_g.backward()
       
       # # gradient clipping
       torch.nn.utils.clip_grad_norm(nmt.parameters(), 5.0)
       optimizer_g.step()
-      optimizer_d.step()
+
 
       train_loss_g += loss_g
       train_loss_d += loss_d
