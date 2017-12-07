@@ -144,7 +144,7 @@ def main(options):
       loss_d_real = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda())
       loss_d_real.backward()
       loss_d_fake = criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size).long()).cuda())
-      loss_d_fake.backward()
+      loss_d_fake.backward(retain_graph=True)
       logging.debug("D loss at batch {0}: {1}".format(i, loss_d_fake.data[0]+loss_d_real.data[0]))
       optimizer_d.step()
 
