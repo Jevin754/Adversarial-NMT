@@ -134,7 +134,7 @@ def main(options):
     train_loss_nll_batch_num = 0
     train_loss_ce_batch_num = 0
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
-      if i == 2500:
+      if i == 1500:
          break
       # if i==5:
       #   break
