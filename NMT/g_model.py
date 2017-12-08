@@ -169,7 +169,7 @@ class LuongAttnDecoderRNN(nn.Module):
         self.embedding = nn.Embedding(input_vocab_size, embed_size)
         self.lstm = nn.LSTMCell(embed_size + hidden_size, hidden_size)
 
-        self.log_softmax = nn.LogSoftmax(dim=1)
+        self.log_softmax = nn.LogSoftmax()
         self.linear_out = nn.Linear(hidden_size, input_vocab_size)
         # instantiate attention class
         if attn_model != None:
