@@ -127,7 +127,7 @@ class Attn(nn.Module):
 
         # Normalize energies to weights in range 0 to 1
         # align_vectors = F.softmax(align.view(batch * targetL, sourceL), dim=1)
-        align_vectors = F.softmax(align.view(batch * targetL, sourceL))
+        align_vectors = F.softmax(align.view(batch * targetL, sourceL),dim=1)
 
         align_vectors = align_vectors.view(batch, targetL, sourceL)
 
