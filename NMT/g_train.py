@@ -57,9 +57,45 @@ def main(options):
   batched_dev_src, batched_dev_src_mask, sort_index = utils.tensor.advanced_batchize(src_dev, options.batch_size, src_vocab.stoi["<blank>"])
   batched_dev_trg, batched_dev_trg_mask = utils.tensor.advanced_batchize_no_sort(trg_dev, options.batch_size, trg_vocab.stoi["<blank>"], sort_index)
 
+  print "preprocessing batched data..."
+  processed_src = list()
+  processed_trg = list()
+  processed_src_mask = list()
+  processed_trg_mask = list()
+  for batch_i in range(len(batched_train_src)):
+    if batched_train_src[batch_i].size(0) <= 32 and batched_train_trg[batch_i].size(0) <= 32:
+      processed_src.append(batched_train_src[batch_i])
+      processed_trg.append(batched_train_trg[batch_i])
+      processed_src_mask.append(batched_train_src_mask[batch_i])
+      processed_trg_mask.append(batched_train_trg_mask[batch_i])
+
+
+  batched_train_src = processed_src
+  batched_train_trg = processed_trg
+  batched_train_src_mask = processed_src_mask
+  batched_train_trg_mask = processed_trg_mask
+
+  processed_src = list()
+  processed_trg = list()
+  processed_src_mask = list()
+  processed_trg_mask = list()
+  for batch_i in range(len(batched_dev_src)):
+    if batched_dev_src[batch_i].size(0) <= 32 and batched_dev_trg[batch_i].size(0) <= 32:
+      processed_src.append(batched_dev_src[batch_i])
+      processed_trg.append(batched_dev_trg[batch_i])
+      processed_src_mask.append(batched_dev_src_mask[batch_i])
+      processed_trg_mask.append(batched_dev_trg_mask[batch_i])
+
+  batched_dev_src = processed_src
+  batched_dev_trg = processed_trg
+  batched_dev_src_mask = processed_src_mask
+  batched_dev_trg_mask = processed_trg_mask
+
+  del processed_src, processed_trg
+
   trg_vocab_size = len(trg_vocab)
   src_vocab_size = len(src_vocab)
-  word_emb_size = 300
+  word_emb_size = 50
   hidden_size = 1024
 
   nmt = NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
@@ -95,6 +131,7 @@ def main(options):
 
     # srange generates a lazy sequence of shuffled range
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
+      if i== 5: break
       train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
       train_trg_batch = Variable(batched_train_trg[batch_i])  # of size (src_seq_len, batch_size)
       train_src_mask = Variable(batched_train_src_mask[batch_i])
@@ -136,6 +173,7 @@ def main(options):
     nmt.eval()
     nmt.generator.eval()
     for batch_i in range(len(batched_dev_src)):
+      if batch_i == 5: break
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
       dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)
       dev_src_mask = Variable(batched_dev_src_mask[batch_i], volatile=True)
@@ -164,7 +202,7 @@ def main(options):
     # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
     #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
     #   break
-    #torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
+    torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
   f1.close()
   f2.close()
