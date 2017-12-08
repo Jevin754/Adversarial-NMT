@@ -134,6 +134,8 @@ def main(options):
     train_loss_nll_batch_num = 0
     train_loss_ce_batch_num = 0
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
+      if i == 2500:
+         break
       # if i==5:
       #   break
       train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
@@ -213,8 +215,6 @@ def main(options):
     dev_loss_d = 0.0
 
     for batch_i in range(len(batched_dev_src)):
-      if batch_i == 2500:
-         break
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
       dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)
       dev_src_mask = Variable(batched_dev_src_mask[batch_i], volatile=True)
