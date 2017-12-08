@@ -143,9 +143,9 @@ def main(options):
       fake_dis_label_out = discriminator(train_src_batch, train_trg_batch, True)
       real_dis_label_out = discriminator(train_src_batch, predict_batch, True)
       optimizer_d.zero_grad()
-      loss_d_real = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size/len(options.gpuid)).long()).cuda())
+      loss_d_real = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda())
       loss_d_real.backward()
-      loss_d_fake = criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size/len(options.gpuid)).long()).cuda())
+      loss_d_fake = criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size*len(options.gpuid)).long()).cuda())
       loss_d_fake.backward(retain_graph=True)
       loss_d = loss_d_fake.data[0]+loss_d_real.data[0]
       logging.debug("D loss at batch {0}: {1}".format(i, loss_d))
