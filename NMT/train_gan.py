@@ -33,8 +33,8 @@ parser.add_argument("--epochs", default=20, type=int,
                     help="Epochs through the data. (default=20)")
 parser.add_argument("--optimizer", default="SGD", choices=["SGD", "Adadelta", "Adam"],
                     help="Optimizer of choice for training. (default=SGD)")
-parser.add_argument("--learning_rate", "-lr", default=0.001, type=float,
-                    help="Learning rate of the optimization. (default=0.1)")
+parser.add_argument("--learning_rate", "-lr", default=1e-3, type=float,
+                    help="Learning rate of the optimization. (default=0.001)")
 parser.add_argument("--momentum", default=0.9, type=float,
                     help="Momentum when performing SGD. (default=0.9)")
 parser.add_argument("--estop", default=1e-2, type=float,
@@ -129,7 +129,10 @@ def main(options):
 
     train_loss_g = 0.0
     train_loss_d = 0.0
+    train_loss_batch_num = 0
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
+      if t==5:
+        break
       train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
       train_trg_batch = Variable(batched_train_trg[batch_i])  # of size (src_seq_len, batch_size)
       train_src_mask = Variable(batched_train_src_mask[batch_i])
@@ -172,11 +175,15 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
         loss_g = criterion_g(sys_out_batch, train_trg_batch)
+        train_loss_g += loss_g
+        train_loss_batch_num += 1
+        f1.write("G train NLL loss at batch {0}: {1}\n".format(i, loss_g.data[0]))
       else:
         loss_g = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda())
-      
+        f1.write("G train CE loss at batch {0}: {1}\n".format(i, loss_g.data[0]))
+
       logging.debug("G loss at batch {0}: {1}".format(i, loss_g.data[0]))
-      f1.write("G train at batch {0}: {1}\n".format(i, loss_g.data[0]))
+      
       
 
       optimizer_g.zero_grad()
@@ -187,9 +194,8 @@ def main(options):
       optimizer_g.step()
 
 
-      train_loss_g += loss_g
       train_loss_d += loss_d
-    train_avg_loss_g = train_loss_g / len(train_src_batch)
+    train_avg_loss_g = train_loss_g / train_loss_batch_size
     train_avg_loss_d = train_loss_d / len(train_src_batch)
     logging.info("G TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_g, epoch_i))
     logging.info("D TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_d, epoch_i))
@@ -232,17 +238,23 @@ def main(options):
       dev_trg_mask = dev_trg_mask.unsqueeze(1).expand(len(dev_trg_mask), trg_vocab_size)
       sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
       sys_out_batch = sys_out_batch.masked_select(dev_trg_mask).view(-1, trg_vocab_size)
-      loss_g = criterion(1, fake_dis_label_out)
+      loss_g_nll = criterion_g(sys_out_batch, dev_trg_batch)
+      loss_g_ce = criterion(1, fake_dis_label_out)
       loss_d = criterion(1, real_dis_label_out) + criterion(0, fake_dis_label_out)
-      logging.debug("G dev loss at batch {0}: {1}".format(batch_i, loss_g.data[0]))
-      f2.write("G dev loss at batch {0}: {1}\n".format(batch_i, loss_g.data[0]))
+      logging.debug("G dev NLL loss at batch {0}: {1}".format(batch_i, loss_g_nll.data[0]))
+      logging.debug("G dev CE loss at batch {0}: {1}".format(batch_i, loss_g_ce.data[0]))
+      f2.write("G dev NLL loss at batch {0}: {1}\n".format(batch_i, loss_g_nll.data[0]))
+      f2.write("G dev CE loss at batch {0}: {1}\n".format(batch_i, loss_g_ce.data[0]))
       logging.debug("D dev loss at batch {0}: {1}".format(batch_i, loss_d.data[0]))
       f2.write("D dev loss at batch {0}: {1}\n".format(batch_i, loss_d.data[0]))
-      dev_loss_g += loss_g
+      dev_loss_g_nll += loss_g_nll
+      dev_loss_g_ce += loss_g_ce
       dev_loss_d += loss_d
-    dev_avg_loss_g = dev_loss_g / len(batched_dev_src)
+    dev_avg_loss_g_nll = dev_loss_g_nll / len(batched_dev_src)
+    dev_avg_loss_g_ce = dev_loss_g_ce / len(batched_dev_src)
     dev_avg_loss_d = dev_loss_d / len(batched_dev_src)
-    logging.info("G DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g, epoch_i))
+    logging.info("G DEV Average NLL loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_nll, epoch_i))
+    logging.info("G DEV Average CE loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_ce, epoch_i))
     logging.info("D DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_d, epoch_i))
     # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
     #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
