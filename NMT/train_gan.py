@@ -129,7 +129,10 @@ def main(options):
 
     train_loss_g = 0.0
     train_loss_d = 0.0
-    train_loss_batch_num = 0
+    train_loss_g_nll = 0.0
+    train_loss_g_ce = 0.0
+    train_loss_nll_batch_num = 0
+    train_loss_ce_batch_num = 0
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
       if i==5:
         break
@@ -175,11 +178,13 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
         loss_g = criterion_g(sys_out_batch, train_trg_batch)
-        train_loss_g += loss_g
-        train_loss_batch_num += 1
+        train_loss_g_nll += loss_g
+        train_loss_nll_batch_num += 1
         f1.write("G train NLL loss at batch {0}: {1}\n".format(i, loss_g.data[0]))
       else:
         loss_g = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda())
+        train_loss_g_ce += loss_g
+        train_loss_ce_batch_num += 1
         f1.write("G train CE loss at batch {0}: {1}\n".format(i, loss_g.data[0]))
 
       logging.debug("G loss at batch {0}: {1}".format(i, loss_g.data[0]))
@@ -195,9 +200,11 @@ def main(options):
 
 
       train_loss_d += loss_d
-    train_avg_loss_g = train_loss_g / train_loss_batch_size
+    train_avg_loss_g_nll = train_loss_g_nll / train_loss_nll_batch_num
+    train_avg_loss_g_ce = train_loss_g_ce / train_loss_ce_batch_num
     train_avg_loss_d = train_loss_d / len(train_src_batch)
-    logging.info("G TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_g, epoch_i))
+    logging.info("G TRAIN Average NLL loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_g_nll, epoch_i))
+    logging.info("G TRAIN Average CE loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_g_ce, epoch_i))
     logging.info("D TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_d, epoch_i))
       
 
