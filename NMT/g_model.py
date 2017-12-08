@@ -38,13 +38,12 @@ class NMT(nn.Module):
         for weight in self.parameters():
           weight.data.uniform_(-0.1, 0.1)
 
-    def forward(self, src_batch, trg_batch, is_train):
-        
+    def forward(self, src_batch, trg_batch):
+        # Encoding
         encoder_outputs, (e_h,e_c) = self.encoder(src_batch)
 
         e_h_ = torch.cat([e_h[0:e_h.size(0):2], e_h[1:e_h.size(0):2]], 2)
         e_c_ = torch.cat([e_c[0:e_c.size(0):2], e_c[1:e_c.size(0):2]], 2)
-
 
         # Preparing for decoding
         trg_seq_len = trg_batch.size(0)
@@ -68,14 +67,23 @@ class NMT(nn.Module):
         # Decoding
         for d_idx in range(trg_seq_len):
             d_h = d_h.detach()  # detach hidden variable
-            d_c = d_c.detach()  #detach cell state
-            decoder_output, (d_h, d_c), attn_vector = self.decoder(decoder_input, (d_h, d_c), encoder_outputs, attn_vector)
-            sys_out_batch[d_idx] = decoder_output
+            d_c = d_c.detach()  # detach cell state
+            decoder_output, (d_h, d_c), attn_vector = self.decoder(decoder_input, (d_h, d_c), encoder_outputs,
+                                                                   attn_vector)
+            # use generator to produce probability  distribution
+            vocab_dis = self.generator(decoder_output)
+            sys_out_batch[d_idx] = vocab_dis
             attn_vector = attn_vector.view(batch_size, hidden_size)
+
             if self.training:
-                decoder_input = trg_batch[d_idx]
+                use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
+                if use_teacher_forcing:
+                    top_val, top_inx = vocab_dis.view(batch_size, -1).topk(1)
+                    decoder_input = top_inx.squeeze(1)
+                else:
+                    decoder_input = trg_batch[d_idx]
             else:
-                top_val, top_inx = decoder_output.view(batch_size, -1).topk(1)
+                top_val, top_inx = vocab_dis.view(batch_size, -1).topk(1)
                 decoder_input = top_inx.squeeze(1)
 
         return sys_out_batch
@@ -180,49 +188,21 @@ class LuongAttnDecoderRNN(nn.Module):
         self.embedding = nn.Embedding(input_vocab_size, embed_size)
         self.lstm = nn.LSTMCell(embed_size + hidden_size, hidden_size)
 
-        self.log_softmax = nn.LogSoftmax()
-        self.linear_out = nn.Linear(hidden_size, input_vocab_size)
         # instantiate attention class
         if attn_model != None:
             self.attn = Attn(attn_model, hidden_size)
 
-    def forward(self, input_seq, last_hidden, encoder_outputs):
+    def forward(self, input_seq, last_hidden, encoder_outputs, attn_vector):
         # Note: we run this one step at a time
         # Initialize local and return variables.
-        input_len, input_batch = input_seq.size()
-        hidden_size = encoder_outputs.size()
 
-        if self.use_cuda:
-            output = Variable(torch.zeros(input_batch, hidden_size), requires_grad=False).cuda()
-        else:
-            output = Variable(torch.zeros(input_batch, hidden_size), requires_grad=False)
+        embedded = self.embedding(input_seq)
+        emb_t = embedded.squeeze(0)
+        emb_t = torch.cat([emb_t, attn_vector], 1)
 
-        hidden = last_hidden
-
-        # <s> is represented by 2
-        init_input = Variable(torch.LongTensor([2] * input_batch))
-        if self.use_cuda > 0:
-            init_input = init_input.cuda()
-        init_emb = self.embedding(init_input)
-        emb = self.embeddings(input_seq)
-        emb = torch.cat([init_emb, emb], 0)
-        # exclude the last token (<\s>)
-        emb = emb[:-1]
-
-        outputs = []
-
-        # Input feed concatenates hidden state with
-        # input at every time step.
-        for i, emb_t in enumerate(emb.split(1)):
-            emb_t = emb_t.squeeze(0)
-            emb_t = torch.cat([emb_t, output], 1)
-
-            d_h, d_c = self.lstm(emb_t, hidden)
-            attn_output, attn = self.attn(d_h, encoder_outputs.transpose(0,1))
-            output = self.dropout(attn_output)
-            linear_out = self.linear_out(output)
-            vocab_distribution = self.log_softmax(linear_out)
-            outputs += [output]
+        d_h, d_c = self.lstm(emb_t, last_hidden)
+        attn_output, attn = self.attn(d_h, encoder_outputs.transpose(0,1))
+        output = self.dropout(attn_output)
 
         # Return final output
-        return output
+        return output, (d_h, d_c), attn_vector

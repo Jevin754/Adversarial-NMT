@@ -6,6 +6,7 @@ import dill
 import logging
 
 import torch
+import torch.nn as nn
 from torch import cuda
 from torch.autograd import Variable
 from g_model import NMT, EncoderRNN, Attn, LuongAttnDecoderRNN
@@ -64,6 +65,8 @@ def main(options):
   nmt = NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
             src_vocab, trg_vocab, attn_model = "general", use_cuda = True)
 
+  nmt.generator = make_generator(trg_vocab_size, hidden_size)
+
   if use_cuda > 0:
     nmt.cuda()
     if options.distributed:
@@ -75,6 +78,7 @@ def main(options):
 
   # Configure optimization
   lr = options.learning_rate
+  # en_optimizer = eval("torch.optim." + options.optimizer)(nmt.encoder.parameters(), lr)
   optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), lr)
 
   
@@ -87,6 +91,7 @@ def main(options):
 
     # Set training mode
     nmt.train()
+    nmt.generator.train()
 
     # srange generates a lazy sequence of shuffled range
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
@@ -115,9 +120,13 @@ def main(options):
       f1.write("train loss at batch {0}: {1}\n".format(i, loss.data[0]))
       
       optimizer.zero_grad()
+      # de_optimizer.zero_grad()
       loss.backward()
       # # gradient clipping
+      # torch.nn.utils.clip_grad_norm(nmt.encoder.parameters(), 5.0)
+      # torch.nn.utils.clip_grad_norm(nmt.decoder.parameters(), 5.0)
       torch.nn.utils.clip_grad_norm(nmt.parameters(), 5.0)
+      # en_optimizer.step()
       optimizer.step()
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
@@ -125,7 +134,7 @@ def main(options):
 
     # Set validation mode
     nmt.eval()
-
+    nmt.generator.eval()
     for batch_i in range(len(batched_dev_src)):
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
       dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)
@@ -160,7 +169,14 @@ def main(options):
   f1.close()
   f2.close()
 
+def make_generator(trg_vocab_size, hidden_size):
+  generator = nn.Sequential(
+    nn.Linear(hidden_size, trg_vocab_size),
+    nn.LogSoftmax())
+  for p in generator.parameters():
+    p.data.uniform_(-0.1, 0.1)
 
+  return generator
 
 if __name__ == "__main__":
   ret = parser.parse_known_args()
