@@ -6,9 +6,10 @@ import dill
 import logging
 
 import torch
+import torch.nn as nn
 from torch import cuda
 from torch.autograd import Variable
-from model import NMT, EncoderRNN, Attn, LuongAttnDecoderRNN
+from g_model import NMT, EncoderRNN, Attn, LuongAttnDecoderRNN
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
@@ -64,6 +65,8 @@ def main(options):
   nmt = NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
             src_vocab, trg_vocab, attn_model = "general", use_cuda = True)
 
+  nmt.generator = make_generator(trg_vocab_size, hidden_size)
+
   if use_cuda > 0:
     nmt.cuda()
     if options.distributed:
@@ -75,7 +78,8 @@ def main(options):
 
   # Configure optimization
   lr = options.learning_rate
-  optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), lr)
+  en_optimizer = eval("torch.optim." + options.optimizer)(nmt.encoder.parameters(), lr)
+  de_optimizer = eval("torch.optim." + options.optimizer)(nmt.decoder.parameters(), lr)
 
   
   # main training loop
@@ -85,6 +89,7 @@ def main(options):
 
     # Set training mode
     nmt.train()
+    nmt.generator.train()
 
     # srange generates a lazy sequence of shuffled range
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
@@ -98,7 +103,7 @@ def main(options):
         train_src_mask = train_src_mask.cuda()
         train_trg_mask = train_trg_mask.cuda()
 
-      sys_out_batch = nmt(train_src_batch, train_trg_batch, True)
+      sys_out_batch = nmt(train_src_batch, train_trg_batch)
 
       del train_src_batch
 
@@ -111,18 +116,21 @@ def main(options):
       loss = criterion(sys_out_batch, train_trg_batch)
       logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
       
-      optimizer.zero_grad()
+      en_optimizer.zero_grad()
+      de_optimizer.zero_grad()
       loss.backward()
       # # gradient clipping
-      torch.nn.utils.clip_grad_norm(nmt.parameters(), 5.0)
-      optimizer.step()
+      torch.nn.utils.clip_grad_norm(nmt.encoder.parameters(), 5.0)
+      torch.nn.utils.clip_grad_norm(nmt.decoder.parameters(), 5.0)
+      en_optimizer.step()
+      de_optimizer.step()
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
 
     # Set validation mode
     nmt.eval()
-
+    nmt.generator.eval()
     for batch_i in range(len(batched_dev_src)):
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
       dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)
@@ -134,7 +142,7 @@ def main(options):
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
 
-      sys_out_batch = nmt(dev_src_batch, dev_trg_batch, False)
+      sys_out_batch = nmt(dev_src_batch, dev_trg_batch)
 
       dev_trg_mask = dev_trg_mask.view(-1)
       dev_trg_batch = dev_trg_batch.view(-1)
@@ -154,7 +162,14 @@ def main(options):
     torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
 
+def make_generator(trg_vocab_size, hidden_size):
+  generator = nn.Sequential(
+    nn.Linear(hidden_size, trg_vocab_size),
+    nn.LogSoftmax())
+  for p in generator.parameters():
+    p.data.uniform_(-0.1, 0.1)
 
+  return generator
 
 if __name__ == "__main__":
   ret = parser.parse_known_args()
