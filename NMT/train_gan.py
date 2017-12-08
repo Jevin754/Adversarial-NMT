@@ -242,8 +242,8 @@ def main(options):
       dev_loss_d += loss_d
     dev_avg_loss_g = dev_loss_g / len(batched_dev_src)
     dev_avg_loss_d = dev_loss_d / len(batched_dev_src)
-    logging.info("G DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g.data[0], epoch_i))
-    logging.info("D DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_d.data[0], epoch_i))
+    logging.info("G DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g, epoch_i))
+    logging.info("D DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_d, epoch_i))
     # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
     #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
     #   break
