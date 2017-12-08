@@ -103,14 +103,14 @@ def main(options):
             src_vocab, trg_vocab, use_cuda = True)
 
   if use_cuda > 0:
-    nmt = torch.nn.parallel.DistributedDataParallel(nmt,device_ids=options.gpuid).cuda()
-    discriminator = torch.nn.parallel.DistributedDataParallel(discriminator,device_ids=options.gpuid).cuda()
+    nmt = torch.nn.DataParallel(nmt,device_ids=options.gpuid).cuda()
+    discriminator = torch.nn.DataParallel(discriminator,device_ids=options.gpuid).cuda()
   else:
     nmt.cpu()
     discriminator.cpu()
 
-  criterion_g = torch.nn.NLLLoss()
-  criterion = torch.nn.CrossEntropyLoss()
+  criterion_g = torch.nn.NLLLoss().cuda()
+  criterion = torch.nn.CrossEntropyLoss().cuda()
 
   # Configure optimization
   optimizer_g = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
