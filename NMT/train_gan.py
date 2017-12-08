@@ -247,7 +247,7 @@ def main(options):
       sys_out_batch = sys_out_batch.masked_select(dev_trg_mask).view(-1, trg_vocab_size)
       loss_g_nll = criterion_g(sys_out_batch, dev_trg_batch)
       loss_g_ce = criterion(Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda(), fake_dis_label_out)
-      loss_d = criterion(Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda(), real_dis_label_out) + criterion(Variable(torch.zeros(options.batch_size*len(options.gpuid)).long(), fake_dis_label_out)
+      loss_d = criterion(Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda(), real_dis_label_out) + criterion(Variable(torch.zeros(options.batch_size*len(options.gpuid)).long()).cuda(), fake_dis_label_out)
       logging.debug("G dev NLL loss at batch {0}: {1}".format(batch_i, loss_g_nll.data[0]))
       logging.debug("G dev CE loss at batch {0}: {1}".format(batch_i, loss_g_ce.data[0]))
       f2.write("G dev NLL loss at batch {0}: {1}\n".format(batch_i, loss_g_nll.data[0]))
