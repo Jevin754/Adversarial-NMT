@@ -152,8 +152,8 @@ def main(options):
       sys_out_batch = nmt(train_src_batch, train_trg_batch, True).detach()
       _,predict_batch = sys_out_batch.topk(1)
       predict_batch = predict_batch.squeeze(2)
-      fake_dis_label_out = discriminator(train_src_batch, train_trg_batch, True)
-      real_dis_label_out = discriminator(train_src_batch, predict_batch, True)
+      real_dis_label_out = discriminator(train_src_batch, train_trg_batch, True)
+      fake_dis_label_out = discriminator(train_src_batch, predict_batch, True)
       optimizer_d.zero_grad()
       loss_d_real = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda())
       loss_d_real.backward()
@@ -235,8 +235,8 @@ def main(options):
       sys_out_batch = nmt(dev_src_batch, dev_trg_batch, False)
       _,predict_batch = sys_out_batch.topk(1)
       predict_batch = predict_batch.squeeze(2)
-      fake_dis_label_out = discriminator(dev_src_batch, dev_trg_batch, True)
-      real_dis_label_out = discriminator(dev_src_batch, predict_batch, True)
+      real_dis_label_out = discriminator(dev_src_batch, dev_trg_batch, True)
+      fake_dis_label_out = discriminator(dev_src_batch, predict_batch, True)
 
       if use_cuda > 0:
         sys_out_batch = sys_out_batch.cuda()
