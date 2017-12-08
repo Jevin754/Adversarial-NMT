@@ -176,7 +176,7 @@ def main(options):
       sys_out_batch = nmt(train_src_batch, train_trg_batch, True)
       _,predict_batch = sys_out_batch.topk(1)
       predict_batch = predict_batch.squeeze(2)
-      fake_dis_label_out = fake_dis_label_out.detach()
+      fake_dis_label_out = discriminator(train_src_batch, predict_batch, True)
       if random.random()>0.5:
         train_trg_mask = train_trg_mask.view(-1)
         train_trg_batch = train_trg_batch.view(-1)
