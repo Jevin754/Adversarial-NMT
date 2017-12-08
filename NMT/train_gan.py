@@ -219,63 +219,63 @@ def main(options):
 
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
-    dev_loss_g_nll = 0.0
-    dev_loss_g_ce = 0.0
-    dev_loss_d = 0.0
+    # dev_loss_g_nll = 0.0
+    # dev_loss_g_ce = 0.0
+    # dev_loss_d = 0.0
 
-    for batch_i in range(len(batched_dev_src)):
-      dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
-      dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)
-      dev_src_mask = Variable(batched_dev_src_mask[batch_i], volatile=True)
-      dev_trg_mask = Variable(batched_dev_trg_mask[batch_i], volatile=True)
-      if use_cuda:
-        dev_src_batch = dev_src_batch.cuda()
-        dev_trg_batch = dev_trg_batch.cuda()
-        dev_src_mask = dev_src_mask.cuda()
-        dev_trg_mask = dev_trg_mask.cuda()
+    # for batch_i in range(len(batched_dev_src)):
+    #   dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
+    #   dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)
+    #   dev_src_mask = Variable(batched_dev_src_mask[batch_i], volatile=True)
+    #   dev_trg_mask = Variable(batched_dev_trg_mask[batch_i], volatile=True)
+    #   if use_cuda:
+    #     dev_src_batch = dev_src_batch.cuda()
+    #     dev_trg_batch = dev_trg_batch.cuda()
+    #     dev_src_mask = dev_src_mask.cuda()
+    #     dev_trg_mask = dev_trg_mask.cuda()
 
-      sys_out_batch = nmt(dev_src_batch, dev_trg_batch, False)
-      _,predict_batch = sys_out_batch.topk(1)
-      predict_batch = predict_batch.squeeze(2)
-      real_dis_label_out = discriminator(dev_src_batch, dev_trg_batch, True)
-      fake_dis_label_out = discriminator(dev_src_batch, predict_batch, True)
+    #   sys_out_batch = nmt(dev_src_batch, dev_trg_batch, False).detach()
+    #   _,predict_batch = sys_out_batch.topk(1)
+    #   predict_batch = predict_batch.squeeze(2)
+    #   real_dis_label_out = discriminator(dev_src_batch, dev_trg_batch, True).detach()
+    #   fake_dis_label_out = discriminator(dev_src_batch, predict_batch, True).detach()
 
-      if use_cuda > 0:
-        sys_out_batch = sys_out_batch.cuda()
-        dev_trg_batch = dev_trg_batch.cuda()
-      else:
-        sys_out_batch = sys_out_batch.cpu()
-        dev_trg_batch = dev_trg_batch.cpu()
+    #   if use_cuda > 0:
+    #     sys_out_batch = sys_out_batch.cuda()
+    #     dev_trg_batch = dev_trg_batch.cuda()
+    #   else:
+    #     sys_out_batch = sys_out_batch.cpu()
+    #     dev_trg_batch = dev_trg_batch.cpu()
 
-      dev_trg_mask = dev_trg_mask.view(-1)
-      dev_trg_batch = dev_trg_batch.view(-1)
-      dev_trg_batch = dev_trg_batch.masked_select(dev_trg_mask)
-      dev_trg_mask = dev_trg_mask.unsqueeze(1).expand(len(dev_trg_mask), trg_vocab_size)
-      sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
-      sys_out_batch = sys_out_batch.masked_select(dev_trg_mask).view(-1, trg_vocab_size)
-      loss_g_nll = criterion_g(sys_out_batch, dev_trg_batch)
-      loss_g_ce = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long(),volatile=True).cuda())
-      loss_d = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long(),volatile=True).cuda()) + criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size*len(options.gpuid)).long(),volatile=True).cuda())
-      logging.debug("G dev NLL loss at batch {0}: {1}".format(batch_i, loss_g_nll.data[0]))
-      logging.debug("G dev CE loss at batch {0}: {1}".format(batch_i, loss_g_ce.data[0]))
-      f2.write("G dev NLL loss at batch {0}: {1}\n".format(batch_i, loss_g_nll.data[0]))
-      f2.write("G dev CE loss at batch {0}: {1}\n".format(batch_i, loss_g_ce.data[0]))
-      logging.debug("D dev loss at batch {0}: {1}".format(batch_i, loss_d.data[0]))
-      f2.write("D dev loss at batch {0}: {1}\n".format(batch_i, loss_d.data[0]))
-      dev_loss_g_nll += loss_g_nll
-      dev_loss_g_ce += loss_g_ce
-      dev_loss_d += loss_d
-    dev_avg_loss_g_nll = dev_loss_g_nll / len(batched_dev_src)
-    dev_avg_loss_g_ce = dev_loss_g_ce / len(batched_dev_src)
-    dev_avg_loss_d = dev_loss_d / len(batched_dev_src)
-    logging.info("G DEV Average NLL loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_nll.cpu().data[0], epoch_i))
-    logging.info("G DEV Average CE loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_ce.cpu().data[0], epoch_i))
-    logging.info("D DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_d.data[0], epoch_i))
-    # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
-    #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
-    #   break
-  torch.save(nmt, open("nmt.nll_{0:.2f}.epoch_{1}".format(dev_avg_loss_g_nll.cpu().data[0], epoch_i), 'wb'), pickle_module=dill)
-  torch.save(discriminator, open("discriminator.nll_{0:.2f}.epoch_{1}".format(dev_avg_loss_d.data[0], epoch_i), 'wb'), pickle_module=dill)
+    #   dev_trg_mask = dev_trg_mask.view(-1)
+    #   dev_trg_batch = dev_trg_batch.view(-1)
+    #   dev_trg_batch = dev_trg_batch.masked_select(dev_trg_mask)
+    #   dev_trg_mask = dev_trg_mask.unsqueeze(1).expand(len(dev_trg_mask), trg_vocab_size)
+    #   sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
+    #   sys_out_batch = sys_out_batch.masked_select(dev_trg_mask).view(-1, trg_vocab_size)
+    #   loss_g_nll = criterion_g(sys_out_batch, dev_trg_batch)
+    #   loss_g_ce = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long(),volatile=True).cuda())
+    #   loss_d = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long(),volatile=True).cuda()) + criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size*len(options.gpuid)).long(),volatile=True).cuda())
+    #   logging.debug("G dev NLL loss at batch {0}: {1}".format(batch_i, loss_g_nll.data[0]))
+    #   logging.debug("G dev CE loss at batch {0}: {1}".format(batch_i, loss_g_ce.data[0]))
+    #   f2.write("G dev NLL loss at batch {0}: {1}\n".format(batch_i, loss_g_nll.data[0]))
+    #   f2.write("G dev CE loss at batch {0}: {1}\n".format(batch_i, loss_g_ce.data[0]))
+    #   logging.debug("D dev loss at batch {0}: {1}".format(batch_i, loss_d.data[0]))
+    #   f2.write("D dev loss at batch {0}: {1}\n".format(batch_i, loss_d.data[0]))
+    #   dev_loss_g_nll += loss_g_nll
+    #   dev_loss_g_ce += loss_g_ce
+    #   dev_loss_d += loss_d
+    # dev_avg_loss_g_nll = dev_loss_g_nll / len(batched_dev_src)
+    # dev_avg_loss_g_ce = dev_loss_g_ce / len(batched_dev_src)
+    # dev_avg_loss_d = dev_loss_d / len(batched_dev_src)
+    # logging.info("G DEV Average NLL loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_nll.cpu().data[0], epoch_i))
+    # logging.info("G DEV Average CE loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_ce.cpu().data[0], epoch_i))
+    # logging.info("D DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_d.data[0], epoch_i))
+    # # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
+    # #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
+    # #   break
+  torch.save(nmt, open("nmt.nll_{0:.2f}.epoch_{1}".format(train_avg_loss_g_nll.cpu().data[0], epoch_i), 'wb'), pickle_module=dill)
+  torch.save(discriminator, open("discriminator.nll_{0:.2f}.epoch_{1}".format(train_avg_loss_d.data[0], epoch_i), 'wb'), pickle_module=dill)
   f1.close()
   f2.close()
 
