@@ -210,8 +210,8 @@ def main(options):
 
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
-    dev_loss_g = 0.0
-    dev_loss_d = 0.0
+    dev_loss_g_nll = 0.0
+    dev_loss_d_nll = 0.0
 
     for batch_i in range(len(batched_dev_src)):
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
