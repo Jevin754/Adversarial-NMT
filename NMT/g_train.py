@@ -100,7 +100,7 @@ def main(options):
         train_src_mask = train_src_mask.cuda()
         train_trg_mask = train_trg_mask.cuda()
 
-      sys_out_batch = nmt(train_src_batch, train_trg_batch, True)
+      sys_out_batch = nmt(train_src_batch, train_trg_batch)
 
       del train_src_batch
 
@@ -137,7 +137,7 @@ def main(options):
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
 
-      sys_out_batch = nmt(dev_src_batch, dev_trg_batch, False)
+      sys_out_batch = nmt(dev_src_batch, dev_trg_batch)
 
       dev_trg_mask = dev_trg_mask.view(-1)
       dev_trg_batch = dev_trg_batch.view(-1)
