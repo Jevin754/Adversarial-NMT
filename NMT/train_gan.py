@@ -213,8 +213,8 @@ def main(options):
     dev_loss_d = 0.0
 
     for batch_i in range(len(batched_dev_src)):
-      # if batch_i == 5:
-      #   break
+      if batch_i == 2500:
+         break
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
       dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)
       dev_src_mask = Variable(batched_dev_src_mask[batch_i], volatile=True)
