@@ -148,7 +148,8 @@ def main(options):
         train_src_mask = train_src_mask.cuda()
         train_trg_mask = train_trg_mask.cuda()
 
-      sys_out_batch = nmt(train_src_batch, train_trg_batch, True)
+      # train discriminator
+      sys_out_batch = nmt(train_src_batch, train_trg_batch, True).detach()
       _,predict_batch = sys_out_batch.topk(1)
       predict_batch = predict_batch.squeeze(2)
       fake_dis_label_out = discriminator(train_src_batch, train_trg_batch, True)
@@ -157,7 +158,8 @@ def main(options):
       loss_d_real = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda())
       loss_d_real.backward()
       loss_d_fake = criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size*len(options.gpuid)).long()).cuda())
-      loss_d_fake.backward(retain_graph=True)
+      #loss_d_fake.backward(retain_graph=True)
+      loss_d_fake.backward()
       loss_d = loss_d_fake.data[0]+loss_d_real.data[0]
       logging.debug("D loss at batch {0}: {1}".format(i, loss_d))
       f1.write("D train loss at batch {0}: {1}\n".format(i, loss_d))
@@ -170,6 +172,11 @@ def main(options):
         sys_out_batch = sys_out_batch.cpu()
         train_trg_batch = train_trg_batch.cpu()
 
+      # train nmt
+      sys_out_batch = nmt(train_src_batch, train_trg_batch, True)
+      _,predict_batch = sys_out_batch.topk(1)
+      predict_batch = predict_batch.squeeze(2)
+      fake_dis_label_out = fake_dis_label_out.detach()
       if random.random()>0.5:
         train_trg_mask = train_trg_mask.view(-1)
         train_trg_batch = train_trg_batch.view(-1)
