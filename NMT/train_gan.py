@@ -32,7 +32,7 @@ parser.add_argument("--epochs", default=20, type=int,
                     help="Epochs through the data. (default=20)")
 parser.add_argument("--optimizer", default="SGD", choices=["SGD", "Adadelta", "Adam"],
                     help="Optimizer of choice for training. (default=SGD)")
-parser.add_argument("--learning_rate", "-lr", default=0.1, type=float,
+parser.add_argument("--learning_rate", "-lr", default=0.001, type=float,
                     help="Learning rate of the optimization. (default=0.1)")
 parser.add_argument("--momentum", default=0.9, type=float,
                     help="Momentum when performing SGD. (default=0.9)")
@@ -45,8 +45,8 @@ parser.add_argument("--gpuid", default=[], nargs='+', type=int,
 def main(options):
 
   use_cuda = (len(options.gpuid) >= 1)
-  if options.gpuid:
-    cuda.set_device(options.gpuid[0])
+  # if options.gpuid:
+  #   cuda.set_device(options.gpuid[0])
 
   src_train, src_dev, src_test, src_vocab = torch.load(open(options.data_file + "." + options.src_lang, 'rb'))
   trg_train, trg_dev, trg_test, trg_vocab = torch.load(open(options.data_file + "." + options.trg_lang, 'rb'))
@@ -94,7 +94,7 @@ def main(options):
 
   trg_vocab_size = len(trg_vocab)
   src_vocab_size = len(src_vocab)
-  word_emb_size = 300
+  word_emb_size = 50
   hidden_size = 1024
 
   nmt = NMT(src_vocab_size, trg_vocab_size, word_emb_size, hidden_size,
@@ -103,20 +103,22 @@ def main(options):
             src_vocab, trg_vocab, use_cuda = True)
 
   if use_cuda > 0:
-    nmt.cuda()
-    discriminator.cuda()
+    nmt = torch.nn.DataParallel(nmt,device_ids=options.gpuid).cuda()
+    discriminator = torch.nn.DataParallel(discriminator,device_ids=options.gpuid).cuda()
   else:
     nmt.cpu()
     discriminator.cpu()
 
-  criterion_g = torch.nn.NLLLoss()
-  criterion = torch.nn.CrossEntropyLoss()
+  criterion_g = torch.nn.NLLLoss().cuda()
+  criterion = torch.nn.CrossEntropyLoss().cuda()
 
   # Configure optimization
   optimizer_g = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
   optimizer_d = eval("torch.optim." + options.optimizer)(discriminator.parameters(), options.learning_rate)
   
   # main training loop
+  f1 = open("train_loss", "a")
+  f2 = open("dev_loss", "a")
   last_dev_avg_loss = float("inf")
   for epoch_i in range(options.epochs):
     logging.info("At {0}-th epoch.".format(epoch_i))
@@ -140,6 +142,15 @@ def main(options):
       predict_batch = predict_batch.squeeze(2)
       fake_dis_label_out = discriminator(train_src_batch, train_trg_batch, True)
       real_dis_label_out = discriminator(train_src_batch, predict_batch, True)
+      optimizer_d.zero_grad()
+      loss_d_real = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda())
+      loss_d_real.backward()
+      loss_d_fake = criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size*len(options.gpuid)).long()).cuda())
+      loss_d_fake.backward(retain_graph=True)
+      loss_d = loss_d_fake.data[0]+loss_d_real.data[0]
+      logging.debug("D loss at batch {0}: {1}".format(i, loss_d))
+      f1.write("D train loss at batch {0}: {1}\n".format(i, loss_d))
+      optimizer_d.step()
 
       sys_out_label = Variable(torch.zeros(options.batch_size))
       train_trg_label = Variable(torch.ones(options.batch_size))
@@ -159,21 +170,19 @@ def main(options):
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
         loss_g = criterion_g(sys_out_batch, train_trg_batch)
       else:
-        loss_g = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda())
-      loss_d = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size).long()).cuda()) + criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size).long()).cuda())
-
+        loss_g = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda())
+      
       logging.debug("G loss at batch {0}: {1}".format(i, loss_g.data[0]))
-      logging.debug("D loss at batch {0}: {1}".format(i, loss_d.data[0]))
+      f1.write("G train at batch {0}: {1}\n".format(i, loss_g.data[0]))
+      
 
       optimizer_g.zero_grad()
-      optimizer_d.zero_grad()
-      loss_d.backward()
       loss_g.backward()
       
       # # gradient clipping
       torch.nn.utils.clip_grad_norm(nmt.parameters(), 5.0)
       optimizer_g.step()
-      optimizer_d.step()
+
 
       train_loss_g += loss_g
       train_loss_d += loss_d
@@ -223,7 +232,9 @@ def main(options):
       loss_g = criterion(1, fake_dis_label_out)
       loss_d = criterion(1, real_dis_label_out) + criterion(0, fake_dis_label_out)
       logging.debug("G dev loss at batch {0}: {1}".format(batch_i, loss_g.data[0]))
+      f2.write("G dev loss at batch {0}: {1}\n".format(batch_i, loss_g.data[0]))
       logging.debug("D dev loss at batch {0}: {1}".format(batch_i, loss_d.data[0]))
+      f2.write("D dev loss at batch {0}: {1}\n".format(batch_i, loss_d.data[0]))
       dev_loss_g += loss_g
       dev_loss_d += loss_d
     dev_avg_loss_g = dev_loss_g / len(batched_dev_src)
@@ -233,7 +244,9 @@ def main(options):
     # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
     #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
     #   break
-    torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss_d.data[0], epoch_i), 'wb'), pickle_module=dill)
+    #torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss_d.data[0], epoch_i), 'wb'), pickle_module=dill)
+  f1.close()
+  f2.close()
 
 
 

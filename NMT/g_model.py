@@ -19,7 +19,7 @@ class NMT(nn.Module):
         self.src_vocab = src_vocab
         self.trg_vocab = trg_vocab
         self.use_cuda = use_cuda
-        self.teacher_forcing_ratio = 0.5
+        self.teacher_forcing_ratio = 1.0
 
         # Initialize models
         self.encoder = EncoderRNN(src_vocab_size, word_emb_size, hidden_size) 
@@ -38,7 +38,6 @@ class NMT(nn.Module):
         for weight in self.parameters():
           weight.data.uniform_(-0.1, 0.1)
 
-
     def forward(self, src_batch, trg_batch):
         # Encoding
         encoder_outputs, (e_h,e_c) = self.encoder(src_batch)
@@ -49,8 +48,7 @@ class NMT(nn.Module):
         # Preparing for decoding
         trg_seq_len = trg_batch.size(0)
         batch_size = trg_batch.size(1)
-        sys_out_batch = Variable(torch.FloatTensor(trg_seq_len, batch_size, self.trg_vocab_size).fill_(
-            self.trg_vocab.stoi['<blank>']))  # (trg_seq_len, batch_size, trg_vocab_size)
+        sys_out_batch = Variable(torch.FloatTensor(trg_seq_len, batch_size, self.trg_vocab_size).fill_(self.trg_vocab.stoi['<blank>'])) # (trg_seq_len, batch_size, trg_vocab_size)
         decoder_input = Variable(torch.LongTensor([self.trg_vocab.stoi['<s>']] * batch_size))
 
         # # Use last (forward) hidden state from encoder (Luong's paper)
