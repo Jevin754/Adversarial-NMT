@@ -55,7 +55,7 @@ class NMT(nn.Module):
 
 
         sys_out_batch[d_idx] = decoder_output
-            attn_vector = attn_vector.view(batch_size, hidden_size)
+        attn_vector = attn_vector.view(batch_size, hidden_size)
             if is_train:
                 use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
                 if use_teacher_forcing:
