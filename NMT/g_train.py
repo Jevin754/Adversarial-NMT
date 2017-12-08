@@ -8,7 +8,7 @@ import logging
 import torch
 from torch import cuda
 from torch.autograd import Variable
-from model import NMT, EncoderRNN, Attn, LuongAttnDecoderRNN
+from g_model import NMT, EncoderRNN, Attn, LuongAttnDecoderRNN
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',

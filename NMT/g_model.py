@@ -19,7 +19,7 @@ class NMT(nn.Module):
         self.src_vocab = src_vocab
         self.trg_vocab = trg_vocab
         self.use_cuda = use_cuda
-        self.teacher_forcing_ratio = 0.5
+        self.teacher_forcing_ratio = 1.0
 
         # Initialize models
         self.encoder = EncoderRNN(src_vocab_size, word_emb_size, hidden_size) 
