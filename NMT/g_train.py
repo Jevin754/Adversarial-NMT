@@ -69,8 +69,8 @@ def main(options):
 
   if use_cuda > 0:
     nmt.cuda()
-    if options.distributed:
-      nmt = torch.nn.DataParallel(nmt)
+    # if options.distributed:
+    #   nmt = torch.nn.DataParallel(nmt)
   else:
     nmt.cpu()
 
