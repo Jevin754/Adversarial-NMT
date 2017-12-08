@@ -191,8 +191,8 @@ def main(options):
       train_loss_d += loss_d
     train_avg_loss_g = train_loss_g / len(train_src_batch)
     train_avg_loss_d = train_loss_d / len(train_src_batch)
-    logging.info("G TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_g.data[0], epoch_i))
-    logging.info("D TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_d.data[0], epoch_i))
+    logging.info("G TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_g, epoch_i))
+    logging.info("D TRAIN Average loss value per instance is {0} at the end of epoch {1}".format(train_avg_loss_d, epoch_i))
       
 
 
