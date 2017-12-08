@@ -39,33 +39,44 @@ class NMT(nn.Module):
           weight.data.uniform_(-0.1, 0.1)
 
     def forward(self, src_batch, trg_batch, is_train):
-        # Encoding
+        
         encoder_outputs, (e_h,e_c) = self.encoder(src_batch)
 
         e_h_ = torch.cat([e_h[0:e_h.size(0):2], e_h[1:e_h.size(0):2]], 2)
         e_c_ = torch.cat([e_c[0:e_c.size(0):2], e_c[1:e_c.size(0):2]], 2)
 
-        # # Use last (forward) hidden state from encoder (Luong's paper)
-        d_h = e_h_.squeeze(0)
-        d_c = e_c_.squeeze(0)
 
         # Preparing for decoding
         trg_seq_len = trg_batch.size(0)
         batch_size = trg_batch.size(1)
+        sys_out_batch = Variable(torch.FloatTensor(trg_seq_len, batch_size, self.trg_vocab_size).fill_(self.trg_vocab.stoi['<blank>'])) # (trg_seq_len, batch_size, trg_vocab_size)
+        decoder_input = Variable(torch.LongTensor([self.trg_vocab.stoi['<s>']] * batch_size))
 
+        # # Use last (forward) hidden state from encoder (Luong's paper)
+        d_h = e_h_.squeeze(0)
+        d_c = e_c_.squeeze(0)
+        if self.use_cuda > 0:
+            decoder_input = decoder_input.cuda()
+            sys_out_batch = sys_out_batch.cuda()
 
-        sys_out_batch[d_idx] = decoder_output
-        attn_vector = attn_vector.view(batch_size, hidden_size)
-        if is_train:
-            use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
-            if use_teacher_forcing:
+        hidden_size = e_h_.size(2)
+        if self.use_cuda:
+            attn_vector = Variable(torch.zeros(batch_size, hidden_size), requires_grad=False).cuda()
+        else:
+            attn_vector = Variable(torch.zeros(batch_size, hidden_size), requires_grad=False)
+
+        # Decoding
+        for d_idx in range(trg_seq_len):
+            d_h = d_h.detach()  # detach hidden variable
+            d_c = d_c.detach()  #detach cell state
+            decoder_output, (d_h, d_c), attn_vector = self.decoder(decoder_input, (d_h, d_c), encoder_outputs, attn_vector)
+            sys_out_batch[d_idx] = decoder_output
+            attn_vector = attn_vector.view(batch_size, hidden_size)
+            if self.training:
                 decoder_input = trg_batch[d_idx]
             else:
                 top_val, top_inx = decoder_output.view(batch_size, -1).topk(1)
                 decoder_input = top_inx.squeeze(1)
-        else:
-            top_val, top_inx = decoder_output.view(batch_size, -1).topk(1)
-            decoder_input = top_inx.squeeze(1)
 
         return sys_out_batch
 
