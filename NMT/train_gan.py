@@ -241,6 +241,8 @@ def main(options):
 
       dev_trg_mask = dev_trg_mask.view(-1)
       dev_trg_batch = dev_trg_batch.view(-1)
+      print("dev_trg_mask", dev_trg_mask.shape)
+      print("dev_trg_batch", dev_trg_batch.shape)
       dev_trg_batch = dev_trg_batch.masked_select(dev_trg_mask)
       dev_trg_mask = dev_trg_mask.unsqueeze(1).expand(len(dev_trg_mask), trg_vocab_size)
       sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
@@ -260,9 +262,9 @@ def main(options):
     dev_avg_loss_g_nll = dev_loss_g_nll / len(batched_dev_src)
     dev_avg_loss_g_ce = dev_loss_g_ce / len(batched_dev_src)
     dev_avg_loss_d = dev_loss_d / len(batched_dev_src)
-    logging.info("G DEV Average NLL loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_nll, epoch_i))
-    logging.info("G DEV Average CE loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_ce, epoch_i))
-    logging.info("D DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_d, epoch_i))
+    logging.info("G DEV Average NLL loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_nll.data[0], epoch_i))
+    logging.info("G DEV Average CE loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_g_ce.data[0], epoch_i))
+    logging.info("D DEV Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss_d.data[0], epoch_i))
     # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
     #   logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
     #   break
