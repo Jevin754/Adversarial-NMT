@@ -12,7 +12,7 @@ from model import NMT, EncoderRNN, Attn, LuongAttnDecoderRNN
 from discriminator import Discriminator
 
 import random 
-import time
+#import time
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
@@ -104,8 +104,10 @@ def main(options):
             src_vocab, trg_vocab, use_cuda = True)
 
   if use_cuda > 0:
-    nmt = torch.nn.DataParallel(nmt,device_ids=options.gpuid).cuda()
-    discriminator = torch.nn.DataParallel(discriminator,device_ids=options.gpuid).cuda()
+    #nmt = torch.nn.DataParallel(nmt,device_ids=options.gpuid).cuda()
+    nmt.cuda()
+    #discriminator = torch.nn.DataParallel(discriminator,device_ids=options.gpuid).cuda()
+    discriminator.cuda()
   else:
     nmt.cpu()
     discriminator.cpu()
@@ -144,7 +146,6 @@ def main(options):
       fake_dis_label_out = discriminator(train_src_batch, train_trg_batch, True)
       real_dis_label_out = discriminator(train_src_batch, predict_batch, True)
       optimizer_d.zero_grad()
-      time.sleep(0.5)
       loss_d_real = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda())
       loss_d_real.backward()
       loss_d_fake = criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size*len(options.gpuid)).long()).cuda())
