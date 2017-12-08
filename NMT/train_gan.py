@@ -131,7 +131,7 @@ def main(options):
     train_loss_d = 0.0
     train_loss_batch_num = 0
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
-      if t==5:
+      if i==5:
         break
       train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
       train_trg_batch = Variable(batched_train_trg[batch_i])  # of size (src_seq_len, batch_size)
