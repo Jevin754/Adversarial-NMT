@@ -91,7 +91,7 @@ def main(options):
   batched_dev_src_mask = processed_src_mask
   batched_dev_trg_mask = processed_trg_mask
 
-  del processed_src, processed_trg
+  del processed_src, processed_trg, processed_trg_mask, processed_src_mask
 
   trg_vocab_size = len(trg_vocab)
   src_vocab_size = len(src_vocab)
@@ -161,8 +161,6 @@ def main(options):
       f1.write("D train loss at batch {0}: {1}\n".format(i, loss_d))
       optimizer_d.step()
 
-      sys_out_label = Variable(torch.zeros(options.batch_size))
-      train_trg_label = Variable(torch.ones(options.batch_size))
       if use_cuda > 0:
         sys_out_batch = sys_out_batch.cuda()
         train_trg_batch = train_trg_batch.cuda()
@@ -233,8 +231,6 @@ def main(options):
       fake_dis_label_out = discriminator(dev_src_batch, dev_trg_batch, True)
       real_dis_label_out = discriminator(dev_src_batch, predict_batch, True)
 
-      sys_out_label = Variable(torch.zeros(options.batch_size))
-      dev_trg_label = Variable(torch.ones(options.batch_size))
       if use_cuda > 0:
         sys_out_batch = sys_out_batch.cuda()
         dev_trg_batch = dev_trg_batch.cuda()
