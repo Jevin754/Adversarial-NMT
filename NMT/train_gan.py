@@ -151,6 +151,7 @@ def main(options):
       # train discriminator
       sys_out_batch = nmt(train_src_batch, train_trg_batch, True).detach()
       _,predict_batch = sys_out_batch.topk(1)
+      del _
       predict_batch = predict_batch.squeeze(2)
       real_dis_label_out = discriminator(train_src_batch, train_trg_batch, True)
       fake_dis_label_out = discriminator(train_src_batch, predict_batch, True)
@@ -161,6 +162,7 @@ def main(options):
       #loss_d_fake.backward(retain_graph=True)
       loss_d_fake.backward()
       loss_d = loss_d_fake.data[0]+loss_d_real.data[0]
+      del loss_d_fake, loss_d_real
       logging.debug("D loss at batch {0}: {1}".format(i, loss_d))
       f1.write("D train loss at batch {0}: {1}\n".format(i, loss_d))
       optimizer_d.step()
@@ -252,8 +254,8 @@ def main(options):
       sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
       sys_out_batch = sys_out_batch.masked_select(dev_trg_mask).view(-1, trg_vocab_size)
       loss_g_nll = criterion_g(sys_out_batch, dev_trg_batch)
-      loss_g_ce = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda())
-      loss_d = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long()).cuda()) + criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size*len(options.gpuid)).long()).cuda())
+      loss_g_ce = criterion(fake_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long(),volatile=True).cuda())
+      loss_d = criterion(real_dis_label_out, Variable(torch.ones(options.batch_size*len(options.gpuid)).long(),volatile=True).cuda()) + criterion(fake_dis_label_out, Variable(torch.zeros(options.batch_size*len(options.gpuid)).long(),volatile=True).cuda())
       logging.debug("G dev NLL loss at batch {0}: {1}".format(batch_i, loss_g_nll.data[0]))
       logging.debug("G dev CE loss at batch {0}: {1}".format(batch_i, loss_g_ce.data[0]))
       f2.write("G dev NLL loss at batch {0}: {1}\n".format(batch_i, loss_g_nll.data[0]))
