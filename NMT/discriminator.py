@@ -43,6 +43,7 @@ class Discriminator(nn.Module):
 
         self.mlp = nn.Linear(1280, 20)
         self.ll = nn.Linear(20,2)
+        self.sigmoid = nn.Sigmoid()
         #self.softmax = nn.Softmax() 
 
     def forward(self, src_batch, trg_batch, is_train=False):
@@ -50,15 +51,16 @@ class Discriminator(nn.Module):
         src_embedded = self.embedding1(src_batch) #(s,b,e)
         trg_embedded = self.embedding2(trg_batch)
 
-        src_padded = np.zeros((32,src_batch.size(-1), self.word_emb_size))
-        trg_padded = np.zeros((32, src_batch.size(-1), self.word_emb_size))
+        # 
+        src_padded = np.zeros((35,src_batch.size(-1), self.word_emb_size))
+        trg_padded = np.zeros((35, src_batch.size(-1), self.word_emb_size))
         src_padded[:src_embedded.size(0), :src_embedded.size(1), :src_embedded.size(2)] = src_embedded.data
         trg_padded[:trg_embedded.size(0), :trg_embedded.size(1), :trg_embedded.size(2)] = trg_embedded.data
 
         src_padded = np.transpose(np.expand_dims(src_padded,2),(1,3,2,0)) #(b,c,h,w)
-        src_padded = np.concatenate([src_padded]*32, axis=2)
+        src_padded = np.concatenate([src_padded]*35, axis=2)
         trg_padded = np.transpose(np.expand_dims(trg_padded,2),(1,3,0,2)) 
-        trg_padded = np.concatenate([trg_padded]*32, axis=3)
+        trg_padded = np.concatenate([trg_padded]*35, axis=3)
 
         input = Variable(torch.from_numpy(np.concatenate([src_padded,trg_padded],axis=1)).float())
 
@@ -70,6 +72,7 @@ class Discriminator(nn.Module):
         out = out.view(out.size(0), 1280)
         out = F.relu(self.mlp(out))
         out = self.ll(out)
+        out = self.sigmoid(out)
         #out = self.softmax(out)
 
         return out
