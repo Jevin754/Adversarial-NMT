@@ -55,17 +55,17 @@ class NMT(nn.Module):
 
 
         sys_out_batch[d_idx] = decoder_output
-            attn_vector = attn_vector.view(batch_size, hidden_size)
-            if is_train:
-                use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
-                if use_teacher_forcing:
-                    decoder_input = trg_batch[d_idx]
-                else:
-                    top_val, top_inx = decoder_output.view(batch_size, -1).topk(1)
-                    decoder_input = top_inx.squeeze(1)
+        attn_vector = attn_vector.view(batch_size, hidden_size)
+        if is_train:
+            use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
+            if use_teacher_forcing:
+                decoder_input = trg_batch[d_idx]
             else:
                 top_val, top_inx = decoder_output.view(batch_size, -1).topk(1)
                 decoder_input = top_inx.squeeze(1)
+        else:
+            top_val, top_inx = decoder_output.view(batch_size, -1).topk(1)
+            decoder_input = top_inx.squeeze(1)
 
         return sys_out_batch
 
@@ -169,7 +169,7 @@ class LuongAttnDecoderRNN(nn.Module):
         self.embedding = nn.Embedding(input_vocab_size, embed_size)
         self.lstm = nn.LSTMCell(embed_size + hidden_size, hidden_size)
 
-        self.log_softmax = nn.LogSoftmax(dim=1)
+        self.log_softmax = nn.LogSoftmax()
         self.linear_out = nn.Linear(hidden_size, input_vocab_size)
         # instantiate attention class
         if attn_model != None:
