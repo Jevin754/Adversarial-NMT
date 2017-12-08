@@ -6,6 +6,6 @@ Neural Machine Translation (NMT) has become more and more popular in both academ
 In this project, we manage to investigate how Adversarial-NMT system works and implement an Adversarial-NMT model according to the work of (Lijun Wu et al., 2017). And finally compare our Adversarial-NMT with traditional NMT models. Due to limited computation resource and time, especially the GPU memories, we can only run our model on a small German to English dataset for some epochs, which consisting about 10K training sentence pairs and 3K validation pairs. 
 
 To run the Adversarial-NMT, please use the following command:
-'''
+```
 python train_gan.py --data_file data/hw5 --optimizer Adam --batch_size 16 --model_file data --gpuid 0 --epochs 20
-'''
+```
